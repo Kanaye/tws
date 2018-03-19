@@ -1,5 +1,5 @@
-import IWebsocketConstructor from "./IWebsocketConstructor";
-import Tws from './Tws';
+import IWebsocketConstructor from "./Websocket";
+import Tws from "./Tws";
 
 /**
  * Dirty runtime require workaround ... there 's probably a better way of doing this.
@@ -8,12 +8,12 @@ import Tws from './Tws';
  */
 declare var require: (module: string) => any;
 
-// Entry point for nodejs requiring ws or uws as the websocket implementation
+// entry point for nodejs requiring ws or uws as the websocket implementation
 let WebSocket: IWebsocketConstructor;
 try {
-  WebSocket = require('uws') as IWebsocketConstructor;  
+  WebSocket = require("uws") as IWebsocketConstructor;
 } catch(e) {
-  WebSocket = require('ws') as IWebsocketConstructor;
+  WebSocket = require("ws") as IWebsocketConstructor;
 }
 
 Tws.WebSocket = WebSocket;

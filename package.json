@@ -1,0 +1,24 @@
+{
+  "name": "tws",
+  "version": "0.0.1",
+  "description": "A low-level library to connect to the twitch chat.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/kanaye/tws.git"
+  },
+  "keywords": [
+    "Chat",
+    "Twitch"
+  ],
+  "author": "Joscha Rohmann <joscha@kanaye.net>",
+  "license": "MIT",
+  "devDependencies": {
+    "rollup": "^0.57.1",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.2"
+  }
+}

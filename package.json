@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c",
-    "watch": "echo \"todo :(\""
+    "dev": "env"
   },
   "repository": {
     "type": "git",

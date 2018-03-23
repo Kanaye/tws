@@ -1,14 +1,6 @@
 import IWebsocketConstructor from "./Websocket";
 import SimpleEventEmitter from "./SimpleEventEmitter";
-
-function awaitEvent(emitter: SimpleEventEmitter, eventname: string, timeout: number = null): Promise<any> {
-    return new Promise((resolve ,reject) => {
-        if (timeout !== null) {
-            setTimeout(reject, timeout);
-        }
-        emitter.once(eventname, (...args: any[]) => resolve(args));
-    });
-}
+import { awaitEvent } from "./utilities";
 
 interface IAuth {
     username: string;
@@ -43,6 +35,7 @@ export default class Tws extends SimpleEventEmitter {
 
         let url: string = this.options.url || "wss://irc-ws.chat.twitch.tv/";
         let ws: WebSocket = this.ws = new WebSocket(url);
+
         ws.onmessage = this.parseMessage;
 
         await new Promise((resolve, reject) => {
@@ -64,6 +57,15 @@ export default class Tws extends SimpleEventEmitter {
 
     }
 
+    /**
+     * @throws
+     */
+    private ensureConnection():void {
+        if (this.ws === null || this.ws.readyState !== Tws.WebSocket.OPEN) {
+            throw new Error("No connection to Twitch. Call `connect()` before trying to send values.");
+        }
+    }
+
     private parseMessage = (e: MessageEvent) => {
         // @TODO
     }
@@ -74,6 +76,12 @@ export default class Tws extends SimpleEventEmitter {
      * @param room The rooms uuid if you want to join a chat roo (see https://dev.twitch.tv/docs/irc#twitch-irc-capability-chat-rooms )
      */
     async join(channel: string, room?: string):Promise<void> {
-        // this.ws.send(``);
+        let action: string;
+        if (room === undefined) {
+            action = `JOIN ${channel}`;
+        } else {
+            action = `JOIN #chatrooms:${channel}:${room}`;
+        }
+        this.ws.send(action);
     }
 }

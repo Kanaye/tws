@@ -18,7 +18,7 @@ export default [
         }],
         plugins: [
             typescript({
-                tsconfig: "./config/browser.tsconfig.json"
+                tsconfig: "./config/tsconfig.browser.json"
             })
         ]
     }

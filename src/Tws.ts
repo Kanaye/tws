@@ -2,22 +2,24 @@ import IWebsocketConstructor from "./Websocket";
 import SimpleEventEmitter from "./SimpleEventEmitter";
 import { awaitEvent } from "./utilities";
 
-interface IAuth {
+export { IWebsocketConstructor }; 
+
+export interface IAuth {
     username: string;
     password: string;
 }
 
-interface ITwsOptions {
+export interface ITwsOptions {
     auth?: IAuth;
     url?: string;
 }
 
 export default class Tws extends SimpleEventEmitter {
-    static WebSocket: IWebsocketConstructor = null;
+    static WebSocket: IWebsocketConstructor;
 
-    private ws: WebSocket = null;
+    private ws: WebSocket | undefined;
     private options: ITwsOptions;
-    private pingInterval: Number;
+    private pingInterval: Number | undefined;
 
     constructor(options: ITwsOptions = {}) {
         super();
@@ -25,11 +27,11 @@ export default class Tws extends SimpleEventEmitter {
     }
 
     get connected():boolean {
-        return this.ws !== null && this.ws.readyState === Tws.WebSocket.OPEN;
+        return this.ws != null && this.ws.readyState === Tws.WebSocket.OPEN;
     }
 
     async connect():Promise<void> {
-        if (this.ws !== null && this.ws.readyState === Tws.WebSocket.OPEN) {
+        if (this.connected) {
             throw new Error("Already connected");
         }
 
@@ -58,16 +60,21 @@ export default class Tws extends SimpleEventEmitter {
     }
 
     /**
-     * @throws
+     * Workaround 
+     * @returns WebSocket
+     * @throws Error when not connected.
      */
-    private ensureConnection():void {
-        if (this.ws === null || this.ws.readyState !== Tws.WebSocket.OPEN) {
-            throw new Error("No connection to Twitch. Call `connect()` before trying to send values.");
+    private ensureConnected():WebSocket {
+        // Unfortunatly TypeScript is not "smart enough" to know that "this.connected" is checking for "!this.ws"
+        if (!this.connected || !this.ws) {
+            throw new Error('No connection to twitch. You need to call and wait for `Tws.connect()` before calling actions.');
         }
+        return this.ws;
     }
 
     private parseMessage = (e: MessageEvent) => {
         // @TODO
+        const msg = e.data as string;
     }
     /**
      * Joins a channel.
@@ -76,12 +83,13 @@ export default class Tws extends SimpleEventEmitter {
      * @param room The rooms uuid if you want to join a chat roo (see https://dev.twitch.tv/docs/irc#twitch-irc-capability-chat-rooms )
      */
     async join(channel: string, room?: string):Promise<void> {
+        const ws = this.ensureConnected();
         let action: string;
-        if (room === undefined) {
+        if (room == null) {
             action = `JOIN ${channel}`;
         } else {
             action = `JOIN #chatrooms:${channel}:${room}`;
         }
-        this.ws.send(action);
+        ws.send(action);
     }
 }

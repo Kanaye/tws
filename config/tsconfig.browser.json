@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "target": "es5",
+        "esModuleInterop": true,
+        "importHelpers": true,
+        "strict": true,
+        "declaration": true
+    }
+}

@@ -1,6 +1,13 @@
+export type Listener = (...args: any[]) => void;
+
+interface IListenerObject {
+    listener: Listener;
+    once: boolean;
+}
+
 export default class SimpleEventEmitter {
-    private listeners = {};
-    on(eventname: string, listener: Function, once = false):void {
+    private listeners:Record<string, IListenerObject[]> = {};
+    on(eventname: string, listener: Listener, once = false):void {
         this.listeners[eventname] = this.listeners[eventname] || [];
         this.listeners[eventname].push({
             listener,
@@ -8,12 +15,12 @@ export default class SimpleEventEmitter {
         });
     }
 
-    off(eventname: string, listener: Function) {
+    off(eventname: string, listener: Listener) {
         let listeners = this.listeners[eventname] || [];
         this.listeners[eventname] = listeners.filter(l => l.listener !== listener);
     }
 
-    once(eventname: string, listener: Function) {
+    once(eventname: string, listener: Listener) {
         this.on(eventname, listener, true);
     }
 

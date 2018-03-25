@@ -1,5 +1,5 @@
 import IWebsocketConstructor from "./Websocket";
-import Tws from "./Tws";
+import Tws from "./index";
 
 /**
  * Dirty runtime require workaround ... there 's probably a better way of doing this.

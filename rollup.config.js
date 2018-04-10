@@ -13,7 +13,7 @@ export default [
         {
             format: "umd",
             file: "dist/browser.umd.js",
-            name: pkg.name,
+            name: pkg.build.umdName,
             sourcemap: true
         }],
         plugins: [

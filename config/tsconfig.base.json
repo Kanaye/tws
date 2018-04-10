@@ -2,7 +2,9 @@
     "compilerOptions": {
        "sourceMap": true,
         "lib": ["dom", "es2015"],
-        "target": "esnext"
+        "target": "esnext",
+        "strict": true,
+        "declaration": true
     },
     "include": ["../"]
 }

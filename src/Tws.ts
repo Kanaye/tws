@@ -49,7 +49,7 @@ export default class Tws extends SimpleEventEmitter {
     private reconnecting: boolean = false;
     private reconnectTimer: number | undefined;
     private options: ITwsOptions;
-    private pingInterval: number | NodeJS.Timer;
+    private pingInterval: number | NodeJS.Timer | undefined;
     public twitch: SimpleEventEmitter = new SimpleEventEmitter();
     private createdAt: number = Date.now();
 

@@ -35,31 +35,45 @@ const externalProvider = (oState) => {
 }
 
 const RenderableList = ({ history }) => {
-	return (<VirtualList rowHeight={30} overscanCount={10} data={history} renderRow={(r) =>(<div style="min-height: 30px; border-bottom: 1px solid #00f; padding: 5px;">{r.raw}</div>)} />);
+	return (<VirtualList rowHeight={50} overscanCount={10} data={history} renderRow={(r) =>(<div style={`min-height: 30px; border-bottom: 1px solid ${r.type == 0 ? '#f00' : '#00f'}; padding: 5px; `}>{r.raw}</div>)} />);
 };
 
 async function main () {
 	const tws = new Tws();
-	await tws.connect();
-	console.log("connected");
-	await tws.join("#germandota");
 	window.tws = tws;
 	const db = new Dexie('log');
-	db.version(1).stores({
-		raw: '++id,text'
+	db.version(2).stores({
+		raw: '++id,text,type,date'
 	});
 	const history = [];
 	const { setState, StateComponent } = externalProvider({ history });
+	tws.on('raw-send', (r) => {
+		db.raw.add({
+			text: r.message,
+			type: "outgoing",
+			date: (new Date()).toJSON()
+		});
+		history.push({
+			date: new Date(),
+			raw: r.message,
+			type: 0
+		})
+	});
 	tws.on('receive', (r) => {
 		if (!r.success) return console.error(e);
-		history.push(r.result);
+		history.push({ type: 1, ...r.message});
 		setState({ history });
-		const { raw: text, ...meta } = r.result;
+		const { raw: text, ...meta } = r.message;
 		db.raw.add({
 			text,
-			meta
+			meta,
+			type: "incomming",
+			date: (new Date()).toJSON()
 		});
 	});
+	await tws.connect();
+	console.log("connected");
+	await tws.join("#germandota");
 
 	render(<StateComponent Child={RenderableList} />, document.body);
 }

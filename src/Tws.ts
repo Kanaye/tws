@@ -3,7 +3,7 @@ import SimpleEventEmitter from "./SimpleEventEmitter";
 import { parseMessages } from "./parseMessage";
 import { awaitEvent } from "./utilities";
 
-export { IWebsocketConstructor }; 
+export { IWebsocketConstructor };
 
 export interface IAuth {
     username: string;
@@ -18,12 +18,12 @@ export interface ITwsOptions {
 export default class Tws extends SimpleEventEmitter {
     /**
      * Used to construct the Websocket instance.
-     * You can set it manually to a Websocket implementation 
+     * You can set it manually to a Websocket implementation
      * within your env if required.
      * This library ships with a version for nodejs (import tws/node) setting this
      * to uws or if uws is not available ws.
      * The browser version (tws/browser) set 's this automaticly to the WebSocket global.
-     * 
+     *
      * @static
      * @property {IWebsocketConstructor} WebSocket
      */
@@ -31,7 +31,7 @@ export default class Tws extends SimpleEventEmitter {
 
     private ws: WebSocket | undefined;
     private options: ITwsOptions;
-    private pingInterval: Number | undefined;
+    private pingInterval: number | undefined;
     public twitch: SimpleEventEmitter = new SimpleEventEmitter();
 
     constructor(options: ITwsOptions = {}) {
@@ -61,7 +61,7 @@ export default class Tws extends SimpleEventEmitter {
             username: `justinfan${Math.random().toFixed(6).substr(-6)}`, // random "justinfan" user (anonymous)
             password: "blah" // value twitch uses for anonymous chat "logins"
         };
-    
+
         // perform login
         this.sendRaw(`PASS ${auth.password}`);
         this.sendRaw(`NICK ${auth.username}`);
@@ -70,7 +70,7 @@ export default class Tws extends SimpleEventEmitter {
 
     /**
      * Sends a *raw* message through the websocket.
-     * 
+     *
      * @private
      * @internal
      */
@@ -78,7 +78,7 @@ export default class Tws extends SimpleEventEmitter {
         this.ensureConnected()
             .send(message);
 
-        this.emit('raw-send', {
+        this.emit("raw-send", {
             message,
             time: new Date()
         });
@@ -110,9 +110,8 @@ export default class Tws extends SimpleEventEmitter {
      * @throws Error when not connected.
      */
     private ensureConnected():WebSocket {
-        // Unfortunatly TypeScript is not "smart enough" to know that "this.connected" is checking for "!this.ws"
-        if (!this.connected || !this.ws) {
-            throw new Error('No connection to twitch. You need to call and wait for `Tws.connect()` before calling actions.');
+        if (!this.connected) {
+            throw new Error("No connection to twitch. You need to call and wait for `Tws.connect()` before calling actions.");
         }
         return this.ws;
     }
@@ -121,8 +120,8 @@ export default class Tws extends SimpleEventEmitter {
      * Handles incomming twitch messages and triggers the events on the emitter.
      */
     private onMessage = (e: MessageEvent) => {
-        const msg = e.data as string;
-        this.emit('raw-receive', {
+        const msg: string = e.data as string;
+        this.emit("raw-receive", {
             date: new Date(),
             timeStamp: e.timeStamp,
             message: msg
@@ -130,7 +129,6 @@ export default class Tws extends SimpleEventEmitter {
 
         parseMessages(msg).forEach(parsed => {
             this.emit("receive", parsed);
-            this.twitch.emit('', '');
         });
     }
 

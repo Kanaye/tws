@@ -19,11 +19,18 @@ function unescapeKey(_: string, key: string): string {
 }
 
 const unescape: (str: string) => string = (str: string) => str.replace(ReTagEscaped, unescapeKey);
-export type IIRCMessage = any;
 export type IRCTags = Record<string, string>;
+interface IIRCMessage {
+    raw: string;
+    tags: IRCTags,
+    prefix: string,
+    command: string;
+    params: string;
+}
+
 export interface IIRCParsingResult {
     success: boolean;
-    result?: IIRCMessage;
+    message?: IIRCMessage;
     error?: Error;
 }
 
@@ -34,7 +41,7 @@ export function parseMessages(message: string): IIRCParsingResult[] {
             try {
                 return {
                     success: true,
-                    result: parseMessage(line)
+                    message: parseMessage(line)
                 };
             } catch (error) {
                 return {

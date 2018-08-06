@@ -10,11 +10,12 @@ export default [
         output: [{
             format: "es",
             file: "dist/browser.esnext.mjs",
-            sourcemap: true
+            sourcemap: true 
         }],
         plugins: [
             typescript({
-                tsconfig: "./config/tsconfig.browser.json"
+                tsconfig: "./config/tsconfig.browser.json",
+                sourcemap: true
             })
         ]
     },
@@ -34,7 +35,8 @@ export default [
         }],
         plugins: [
             typescript({
-                tsconfig: "./config/tsconfig.browser.json"
+                tsconfig: "./config/tsconfig.browser.json",
+                sourcemap: true
             }),
             babel({
                 presets: [

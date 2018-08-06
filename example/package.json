@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "devDependencies": {
+    "@babel/core": "^7.0.0-beta.56",
+    "@babel/plugin-transform-react-jsx": "^7.0.0-beta.56",
+    "@babel/preset-env": "^7.0.0-beta.56",
+    "babel-loader": "^8.0.0-beta.4",
+    "fast-async": "^6.3.7",
+    "webpack": "^4.16.5",
+    "webpack-cli": "^3.1.0"
+  },
+  "dependencies": {
+    "dexie": "^2.0.4",
+    "preact": "^8.3.0",
+    "preact-virtual-list": "^0.3.1"
+  }
+}

@@ -1,7 +1,7 @@
 import IWebsocketConstructor from "./Websocket";
 import SimpleEventEmitter from "./SimpleEventEmitter";
-import { parseMessages } from "./parseMessage";
-import { awaitEvent } from "./utilities";
+import { parseMessages, IIRCMessage } from "./parseMessage";
+import { awaitEvent, awaitComplexEvent } from "./utilities";
 
 export { IWebsocketConstructor };
 
@@ -16,6 +16,7 @@ export interface ITwsOptions {
     pingInterval: number;
     reconnect: boolean;
     reconnectTimeout: number;
+    initTimeout: number;
 }
 
 const defaultSettings: ITwsOptions = {
@@ -28,7 +29,8 @@ const defaultSettings: ITwsOptions = {
     url: "wss://irc-ws.chat.twitch.tv/",
     pingInterval: 15e3,
     reconnect: true,
-    reconnectTimeout: 30e3
+    reconnectTimeout: 30e3,
+    initTimeout: 0
 };
 
 export default class Tws extends SimpleEventEmitter {
@@ -71,15 +73,17 @@ export default class Tws extends SimpleEventEmitter {
      */
     async connect():Promise<void> {
         await this.createSocket();
-
-        // request *all* Twitch IRC Capabilities
+        const { auth, pingInterval, initTimeout } = this.options;
+        // request all Twitch IRC Capabilities
         // see https://dev.twitch.tv/docs/irc/#twitch-specific-irc-capabilities
         this.sendRaw("CAP REQ :twitch.tv/tags twitch.tv/membership twitch.tv/commands");
-        const { auth, pingInterval } = this.options;
+        await awaitEvent(this.twitch, "cap", initTimeout);
 
         // perform login
         this.sendRaw(`PASS ${auth.password}`);
         this.sendRaw(`NICK ${auth.username}`);
+        // await first line of "motd"
+        await awaitEvent(this.twitch, "001", initTimeout);
 
         this.pingInterval = setInterval(this.ping, pingInterval);
     }
@@ -101,8 +105,9 @@ export default class Tws extends SimpleEventEmitter {
     }
 
     public ping = async () => {
-        const id = (Date.now() - this.createdAt) / 1000;
+        const id: number = (Date.now() - this.createdAt) / 1000;
         this.sendRaw(`PING ${id}`);
+        await awaitComplexEvent(this.twitch, "pong", { params: `tmi.twitch.tv :${id}` }, 2e3);
         // to await event id
     }
 
@@ -131,7 +136,7 @@ export default class Tws extends SimpleEventEmitter {
      * @returns {WebSocket} The connected socket.
      * @throws Error when not connected.
      */
-    private  get connection():WebSocket {
+    private get connection():WebSocket {
         if (!this.connected) {
             throw new Error("No connection to twitch. You need to call and wait for `Tws.connect()` before calling actions.");
         }
@@ -152,8 +157,8 @@ export default class Tws extends SimpleEventEmitter {
         parseMessages(msg).forEach(parsed => {
             this.emit("receive", parsed);
             if (parsed.message) {
-                const message = parsed.message;
-                this.twitch.emit(message.command, message);
+                const message: IIRCMessage = parsed.message;
+                this.twitch.emit(message.command.toLocaleLowerCase(), message);
             }
         });
     }
@@ -166,12 +171,13 @@ export default class Tws extends SimpleEventEmitter {
      * @param room The rooms uuid if you want to join a chat roo (see https://dev.twitch.tv/docs/irc#twitch-irc-capability-chat-rooms )
      */
     async join(channel: string, room?: string):Promise<void> {
-        let action: string;
+        const { username } = this.options.auth;
         if (room == null) {
-            action = `JOIN ${channel}`;
+            this.sendRaw(`JOIN ${channel}`);
+            await awaitComplexEvent(this.twitch, "join", { params: channel, prefix: `${username}!${username}@${username}.tmi.twitch.tv`}, 2e3);
         } else {
-            action = `JOIN #chatrooms:${channel}:${room}`;
+            this.sendRaw( `JOIN #chatrooms:${channel}:${room}`);
         }
-        this.sendRaw(action);
+
     }
 }

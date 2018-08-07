@@ -49,7 +49,6 @@ export default [
                             "transform-regenerator",
                             "transform-async-to-generator"
                         ]
-
                     }]
                 ],
                 plugins: [

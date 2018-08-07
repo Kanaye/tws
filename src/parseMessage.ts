@@ -20,10 +20,10 @@ function unescapeKey(_: string, key: string): string {
 
 const unescape: (str: string) => string = (str: string) => str.replace(ReTagEscaped, unescapeKey);
 export type IRCTags = Record<string, string>;
-interface IIRCMessage {
+export interface IIRCMessage {
     raw: string;
-    tags: IRCTags,
-    prefix: string,
+    tags: IRCTags;
+    prefix: string;
     command: string;
     params: string;
 }

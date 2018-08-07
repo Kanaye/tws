@@ -1,39 +1,42 @@
-import SimpleEventEmitter from "./SimpleEventEmitter";
+import SimpleEventEmitter from "./TypedEventEmitter";
 
-export function awaitEvent(emitter: SimpleEventEmitter, eventname: string, timeout: number = 0): Promise<any> {
-    return new Promise((resolve ,reject) => {
-        if (timeout > 0) {
-            setTimeout(reject, timeout);
+export function noop() {}
+
+function partialEquals<T>(obj: T, needle: Partial<T>): boolean {
+    for(let key in needle) {
+        const value: any = needle[key];
+        if (obj[key] === undefined) {
+             return false;
+        } else if (typeof value == "object" && typeof obj[key] == "object") {
+            if (!partialEquals(obj[key], value)) return false;
+        } else if (obj[key] !== value) {
+            return false;
         }
-        emitter.once(eventname, (arg: any) => resolve(arg));
-    });
+    }
+    return true;
 }
 
-type key = string | number | symbol;
-type keyValuePair = [key, any];
-
-export function awaitComplexEvent(
-    emitter: SimpleEventEmitter,
-    eventname: string,
-    eventData: Record<key, any>,
-    timeout: number = 0
-): Promise<any> {
-    return new Promise((res, rej) => {
-        const pairs: keyValuePair[] = Object.keys(eventData).map(k => ([k, eventData[k]])) as keyValuePair[];
-        const listener: (a: any) => void = (a: any) => {
-            for (let i: number = 0; i < pairs.length; i++) {
-                const [key, value] = pairs[i];
-                if (a[key] != value) {
-                    return;
-                }
+export function awaitEvent<T, K extends keyof T>(emitter: SimpleEventEmitter<T>, eventname: K, timeout: number = 0, needle: null | Partial<T[K]> = null): Promise<T[K]> {
+    return new Promise((resolve ,reject) => {
+        let timer: number | NodeJS.Timer;
+        const listener = (arg: T[K]) => {
+            if (needle && !partialEquals(arg, needle)) {
+               console.log('awaiting', needle, 'got', arg);
+               return;
             }
             emitter.off(eventname, listener);
-            res(a);
+            if (timer) {
+                clearTimeout(timer as number);
+            }
+            resolve(arg);
         };
         emitter.on(eventname, listener);
         if (timeout > 0) {
-            setTimeout(rej, timeout);
-            emitter.off(eventname, listener);
+           timer = setTimeout(() => {
+               emitter.off(eventname, listener);
+               reject(new Error(`timed out awaiting event ${eventname}`));
+           }, timeout);
         }
+  
     });
 }

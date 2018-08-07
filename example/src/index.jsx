@@ -12,7 +12,7 @@ const externalProvider = (oState) => {
             super();
             this.state = oState;
         }
-        render({ children }, state) {
+        render(_, state) {
             return h(this.props.Child, { ...state });
         }
 
@@ -49,6 +49,9 @@ async function main () {
     const history = [];
     const { setState, StateComponent } = externalProvider({ history });
     tws.on('raw-send', (r) => {
+		console.groupCollapsed('<<<');
+		console.log(r);
+		console.groupEnd();
         db.raw.add({
             text: r.message,
             type: "outgoing",
@@ -59,7 +62,8 @@ async function main () {
             date: new Date(),
             raw: r.message,
             type: 0
-        })
+		});
+		setState({ history });
     });
     tws.twitch.on('privmsg', (m) => {
         console.groupCollapsed(`[${DateTime.fromJSDate(new Date).toFormat('TT')}]%c ${m.tags['display-name'] || m.prefix }%c: ${m.params}`, `color: ${m.tags.color}`, 'color: inherit;');
@@ -67,10 +71,12 @@ async function main () {
         console.groupEnd();
     });
     tws.on('receive', (r) => {
-        if (!r.success) return console.error(e);
-        history.push({ type: 1, ...r.message});
+		console.groupCollapsed(`>>> '${r.raw}'`);
+		console.log(r);
+		console.groupEnd();
+        history.push({ type: 1, ...r});
         setState({ history });
-        const { raw: text, ...meta } = r.message;
+        const { raw: text, ...meta } = r;
         db.raw.add({
             text,
             meta,

@@ -1,7 +1,7 @@
 import IWebsocketConstructor from "./Websocket";
-import SimpleEventEmitter from "./SimpleEventEmitter";
+import SimpleEventEmitter from "./TypedEventEmitter";
 import { parseMessages, IIRCMessage } from "./parseMessage";
-import { awaitEvent, awaitComplexEvent } from "./utilities";
+import { awaitEvent } from "./utilities";
 
 export { IWebsocketConstructor };
 
@@ -33,7 +33,27 @@ const defaultSettings: ITwsOptions = {
     initTimeout: 0
 };
 
-export default class Tws extends SimpleEventEmitter {
+export interface TwsRawMessageEvent {
+    message: string;
+    date: Date;
+}
+
+export interface TwsEventmap {
+    "raw-send": TwsRawMessageEvent;
+    "raw-receive": TwsRawMessageEvent;
+    "receive": IIRCMessage;
+    "parsing-error": {
+        error: Error;
+        input: string;
+    };
+
+}
+
+export interface TwsTwitchEventMap {
+
+}
+
+export default class Tws extends SimpleEventEmitter<TwsEventmap> {
     /**
      * Used to construct the Websocket instance.
      * You can set it manually to a Websocket implementation
@@ -52,7 +72,7 @@ export default class Tws extends SimpleEventEmitter {
     private reconnectTimer: number | undefined;
     private options: ITwsOptions;
     private pingInterval: number | NodeJS.Timer | undefined;
-    public twitch: SimpleEventEmitter = new SimpleEventEmitter();
+    public twitch: SimpleEventEmitter<any> = new SimpleEventEmitter();
     private createdAt: number = Date.now();
 
     constructor(options: Partial<ITwsOptions> = {}) {
@@ -71,7 +91,7 @@ export default class Tws extends SimpleEventEmitter {
      *  - no connection to the specified twitch chat relay could be established
      *  - login fails with wrong username/token or when no confirmation (motd) is sent within 5 seconds.
      */
-    async connect():Promise<void> {
+    async connect():Promise<this> {
         await this.createSocket();
         const { auth, pingInterval, initTimeout } = this.options;
         // request all Twitch IRC Capabilities
@@ -86,6 +106,16 @@ export default class Tws extends SimpleEventEmitter {
         await awaitEvent(this.twitch, "001", initTimeout);
 
         this.pingInterval = setInterval(this.ping, pingInterval);
+        return this;
+    }
+
+    async disconnect(): Promise<this> {
+        if (this.ws) {
+            clearInterval(this.pingInterval as number);
+            this.ws.close();
+            this.ws = undefined;
+        }
+        return this;
     }
 
     /**
@@ -100,15 +130,14 @@ export default class Tws extends SimpleEventEmitter {
 
         this.emit("raw-send", {
             message,
-            time: new Date()
+            date: new Date()
         });
     }
 
     public ping = async () => {
         const id: number = (Date.now() - this.createdAt) / 1000;
         this.sendRaw(`PING ${id}`);
-        await awaitComplexEvent(this.twitch, "pong", { params: `tmi.twitch.tv :${id}` }, 2e3);
-        // to await event id
+        await (awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", id.toString()] }).then(console.log).catch(console.log));
     }
 
     /**
@@ -149,16 +178,17 @@ export default class Tws extends SimpleEventEmitter {
     private onMessage = (e: MessageEvent) => {
         const msg: string = e.data as string;
         this.emit("raw-receive", {
-            date: new Date(),
-            timeStamp: e.timeStamp,
-            message: msg
+            message: msg,
+            date: new Date(e.timeStamp * 1000)
         });
-
+        if (!this.twitch.hasListeners && !this.hasTypesListener("receive")) return;
         parseMessages(msg).forEach(parsed => {
-            this.emit("receive", parsed);
             if (parsed.message) {
                 const message: IIRCMessage = parsed.message;
+                this.emit("receive", message);
                 this.twitch.emit(message.command.toLocaleLowerCase(), message);
+            } else if (parsed.error) {
+                this.emit("parsing-error", parsed.error);
             }
         });
     }
@@ -174,9 +204,9 @@ export default class Tws extends SimpleEventEmitter {
         const { username } = this.options.auth;
         if (room == null) {
             this.sendRaw(`JOIN ${channel}`);
-            await awaitComplexEvent(this.twitch, "join", { params: channel, prefix: `${username}!${username}@${username}.tmi.twitch.tv`}, 2e3);
+            await awaitEvent(this.twitch, "join", 2e3, { params: [channel], prefix: `:${username}!${username}@${username}.tmi.twitch.tv`});
         } else {
-            this.sendRaw( `JOIN #chatrooms:${channel}:${room}`);
+            this.sendRaw(`JOIN #chatrooms:${channel}:${room}`);
         }
 
     }

@@ -1,83 +1,121 @@
-import SimpleEventEmitter from "./SimpleEventEmitter";
 
-const ReSplitIRCMessage: RegExp = /(?:@([^\n\s]+)\s+)?(?::([^\n\s]+)\s+)?([^\n\s]+)\s+?([^\n]+)?/;
-const ReTagEscaped: RegExp = /\\([\\srn])/g;
 
-function unescapeKey(_: string, key: string): string {
-    switch (key) {
-        case "\\":
-            return "\\";
-        case "s":
-            return " ";
-        case "r":
-            return "\r";
-        case "n":
-            return "\n";
-        default:
-            throw new Error(`"${key}, ${_}"`);
+function unescape(input: string): string {
+    let out = "";
+    for (let i = 0; i < input.length; i++) {
+        let char = input[i];
+        if (char == "\\" && "\\srn".indexOf(input[i + 1]) != -1) {
+            switch(input[++i]) {
+                case "\\":
+                    break;
+                case "s":
+                    char = " ";
+                    break;
+                case "r":
+                    char = "\r";
+                    break;
+                case "n":
+                    char = "\n";
+            }
+        }
+        out += char;
     }
+    return out;
 }
 
-const unescape: (str: string) => string = (str: string) => str.replace(ReTagEscaped, unescapeKey);
 export type IRCTags = Record<string, string>;
 export interface IIRCMessage {
     raw: string;
     tags: IRCTags;
     prefix: string;
     command: string;
-    params: string;
+    params: string[];
 }
 
 export interface IIRCParsingResult {
-    success: boolean;
     message?: IIRCMessage;
-    error?: Error;
+    error?:  { error: Error, input: string };
 }
 
 export function parseMessages(message: string): IIRCParsingResult[] {
-    return message.split("\n")
-        .filter(line => line.trim().length)
-        .map(line => {
-            try {
-                return {
-                    success: true,
-                    message: parseMessage(line)
-                };
-            } catch (error) {
-                return {
-                    error,
-                    success: false
-                };
-            }
-        });
+    const messages: IIRCParsingResult[] = [];
+    let start = 0;
+    for (let i = 0; i < message.length; i++) {
+        if (message[i] == "\n" || message[i] == "\r") {
+            const part = message.substring(start, i);
+            messages.push(parseMessage(part));
+            start = ++i;
+        }
+    }
+    console.log({ r: message }, messages.map( m => (m.message as IIRCMessage).raw ));
+    return messages;
 }
 
-function parseMessage(msg: string): IIRCMessage {
-    const result: RegExpExecArray | null = ReSplitIRCMessage.exec(msg);
-    if (result == null) {
-
-        throw new Error(`Invalid IRC Message "${msg}"`);
+const find = (token: string, str: string, start: number, reverse: boolean =  false): number => {
+    for (; start < str.length; start++) {
+        if (reverse) {
+            if (token !== str[start]) {
+                break;
+            }
+        } else {
+            if (token == str[start]) {
+                break;
+            }
+        }
     }
-    const [_, rawTags, prefix, command, params] = result;
+    return start;
+}
+const nextNonspace = (str: string, start: number): number => find(" ", str, start, true);
+const nextSpace = (str: string, start: number): number => find(" ", str, start);
+function parseMessage(msg: string): IIRCParsingResult {
     const message: IIRCMessage = {
         raw: msg,
-        tags: parseTags(rawTags),
-        prefix, // @TODO(parse prefix)
-        command,
-        params
+        tags: {},
+        prefix: "", // @TODO(parse prefix)
+        command: "",
+        params: []
     };
-    return message;
-}
 
-function parseTags(tags?: string): IRCTags {
-    const result: IRCTags = {};
-    if (tags == null) {
-         return result;
+    let start = 0;
+    let pos = 0;
+    const tags = message.tags;
+    if (msg[pos] == "@") {
+        let key = "";
+        for (pos++; pos < msg.length; pos++) {
+            if (msg[pos] == "=") {
+                key = unescape(msg.substr(start, pos));
+                start = pos;
+            }
+            if (msg[pos] == ";" || msg[pos] == " ") {
+                tags[key] = unescape(msg.substring(start, pos));
+                if (msg[pos] == " ") {
+                    break;
+                }
+            }
+        }
     }
-    tags.split(";")
-        .forEach(tag => {
-            const [key, value] = unescape(tag).split("=");
-            result[key] = value;
-        });
-    return result;
+
+    start = pos = nextNonspace(msg, pos);
+
+    if (msg[pos] == ":") {
+        pos = find(" ", msg, pos);
+        message.prefix = msg.substring(start, pos); 
+    }
+    
+    pos = start = nextNonspace(msg, pos);
+    pos = nextSpace(msg, pos);
+    message.command = msg.substring(start, pos);
+
+    pos = start = nextNonspace(msg, pos);
+    
+    while(msg[pos] == ':') {
+        pos = nextSpace(msg, pos);
+        if (pos >= msg.length) break;
+        message.params.push(msg.substring(start, pos));
+        start = pos = nextNonspace(msg, pos);
+    }
+
+    message.params.push(msg.substring(start, msg.length));
+
+    return { message };
 }

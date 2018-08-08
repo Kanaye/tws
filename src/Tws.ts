@@ -33,14 +33,14 @@ const defaultSettings: ITwsOptions = {
     initTimeout: 0
 };
 
-export interface TwsRawMessageEvent {
+export interface IRawMessageEvent {
     message: string;
     date: Date;
 }
 
-export interface TwsEventmap {
-    "raw-send": TwsRawMessageEvent;
-    "raw-receive": TwsRawMessageEvent;
+export interface ITwsEventmap {
+    "raw-send": IRawMessageEvent;
+    "raw-receive": IRawMessageEvent;
     "receive": IIRCMessage;
     "parsing-error": {
         error: Error;
@@ -49,11 +49,11 @@ export interface TwsEventmap {
 
 }
 
-export interface TwsTwitchEventMap {
+export interface ITwsTwitchEventMap {
 
 }
 
-export default class Tws extends SimpleEventEmitter<TwsEventmap> {
+export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     /**
      * Used to construct the Websocket instance.
      * You can set it manually to a Websocket implementation
@@ -181,7 +181,7 @@ export default class Tws extends SimpleEventEmitter<TwsEventmap> {
             message: msg,
             date: new Date(e.timeStamp * 1000)
         });
-        if (!this.twitch.hasListeners && !this.hasTypesListener("receive")) return;
+
         parseMessages(msg).forEach(parsed => {
             if (parsed.message) {
                 const message: IIRCMessage = parsed.message;

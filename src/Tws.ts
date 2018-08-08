@@ -137,7 +137,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     public ping = async () => {
         const id: number = (Date.now() - this.createdAt) / 1000;
         this.sendRaw(`PING ${id}`);
-        await (awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", id.toString()] }).then(console.log).catch(console.log));
+        await awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", id.toString()] });
     }
 
     /**
@@ -204,7 +204,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
         const { username } = this.options.auth;
         if (room == null) {
             this.sendRaw(`JOIN ${channel}`);
-            await awaitEvent(this.twitch, "join", 2e3, { params: [channel], prefix: `:${username}!${username}@${username}.tmi.twitch.tv`});
+            await awaitEvent(this.twitch, "353", 2e3, { params: [username, "=", channel, username] });
         } else {
             this.sendRaw(`JOIN #chatrooms:${channel}:${room}`);
         }

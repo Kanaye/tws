@@ -15,7 +15,7 @@ export default [
         plugins: [
             typescript({
                 tsconfig: "./config/tsconfig.browser.json",
-                sourcemap: true
+                sourcemap: true,
             })
         ]
     },
@@ -36,7 +36,13 @@ export default [
         plugins: [
             typescript({
                 tsconfig: "./config/tsconfig.browser.json",
-                sourcemap: true
+                sourcemap: true,
+                tsconfigOverride: {
+                    compilerOptions: {
+                        declaration: false
+                    }
+                },
+                useTsconfigDeclarationDir: true
             }),
             babel({
                 presets: [

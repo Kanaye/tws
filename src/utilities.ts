@@ -1,4 +1,5 @@
 import SimpleEventEmitter, { Listener } from "./TypedEventEmitter";
+import { ENOMEM } from "constants";
 
 // tslint:disable:no-empty
 export function noop(): void { }

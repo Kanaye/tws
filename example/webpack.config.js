@@ -14,6 +14,11 @@ module.exports = (_, {w, watch}) => {
 		module: {
 			rules: [
 				{
+					test: /\.m?js$/,
+					loader: 'source-map-loader',
+					enforce: 'pre'
+				},
+				{
 					test: /\.jsx?$/,
 					loader: 'babel-loader',
 					options: {

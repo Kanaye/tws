@@ -1,5 +1,5 @@
 import { h, render, Component } from "preact";
-import Tws from "../../dist/browser.esnext.mjs";
+import Tws from "../../";
 import Dexie from "dexie";
 import VirtualList from "preact-virtual-list";
 import { DateTime } from "luxon";
@@ -65,13 +65,20 @@ async function main () {
 		});
 		setState({ history });
     });
+  /*
     tws.twitch.on('privmsg', (m) => {
         console.groupCollapsed(`[${DateTime.fromJSDate(new Date).toFormat('TT')}]%c ${m.tags['display-name'] || m.prefix }%c: ${m.params}`, `color: ${m.tags.color}`, 'color: inherit;');
         console.log(m);
         console.groupEnd();
-    });
+	});
+   */ 
+
     tws.on('receive', (r) => {
-		console.groupCollapsed(`>>> '${r.raw}'`);
+		if (r.command === "PRIVMSG") {
+	        console.groupCollapsed(`>>> %c ${r.tags['display-name'] || r.prefix.user }%c: [${r.params[0]}]%c: ${r.params[1]}`, `color: ${r.tags.color}`, 'color: #666;', 'color: inherit;');
+		} else{
+			console.groupCollapsed(`>>> '${r.raw}'`);
+		}
 		console.log(r);
 		console.groupEnd();
         history.push({ type: 1, ...r});

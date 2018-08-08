@@ -2,6 +2,5 @@
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
         "target": "esnext",
-        "declaration": true
     }
 }

@@ -38,7 +38,7 @@ export default class TypedEventEmitter<T> {
     off<K extends keyof T>(event: K, listener: Listener<T[K]>): this {
         const { listeners } = this;
         if (listeners[event]) {
-            listeners[event] = (listeners[event] as IListenerObject<T[K]>[]).filter(l => l.listener !== listener);
+            this.listeners[event] = (listeners[event] as IListenerObject<T[K]>[]).filter(l => l.listener !== listener);
         }
         return this;
     }
@@ -48,7 +48,7 @@ export default class TypedEventEmitter<T> {
     }
 
     emit<K extends keyof T>(eventname: K, arg: T[K]): this {
-        let listeners: IListenerObject<T[K]>[] | undefined = this.listeners[eventname];
+        const listeners: IListenerObject<T[K]>[] | undefined = this.listeners[eventname];
         if (!listeners || !listeners.length) {
             return this;
         }

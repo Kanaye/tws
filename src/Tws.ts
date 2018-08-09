@@ -2,8 +2,7 @@ import IWebsocketConstructor from "./Websocket";
 import SimpleEventEmitter from "./TypedEventEmitter";
 import { parseMessages, IIRCMessage } from "./parseMessage";
 import { awaitEvent } from "./utilities";
-
-export { IWebsocketConstructor };
+import { ITwitchEventMap, TwitchCommands } from "./TwitchEvents";
 
 export interface IAuth {
     username: string;
@@ -46,7 +45,7 @@ export interface ITwsEventmap {
         error: Error;
         input: string;
     };
-
+    "pong": number;
 }
 
 export interface ITwsTwitchEventMap {
@@ -72,7 +71,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     private reconnectTimer: number | undefined;
     private options: ITwsOptions;
     private pingInterval: number | NodeJS.Timer | undefined;
-    public twitch: SimpleEventEmitter<any> = new SimpleEventEmitter();
+    public twitch: SimpleEventEmitter<ITwitchEventMap> = new SimpleEventEmitter();
     private createdAt: number = Date.now();
 
     constructor(options: Partial<ITwsOptions> = {}) {
@@ -92,6 +91,9 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
      *  - login fails with wrong username/token or when no confirmation (motd) is sent within 5 seconds.
      */
     async connect():Promise<this> {
+        if (this.connected) {
+            throw new Error("Already connected");
+        }
         await this.createSocket();
         const { auth, pingInterval, initTimeout } = this.options;
         // request all Twitch IRC Capabilities
@@ -134,10 +136,13 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
         });
     }
 
-    public ping = async () => {
-        const id: number = (Date.now() - this.createdAt) / 1000;
-        this.sendRaw(`PING ${id}`);
-        await awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", id.toString()] });
+    public ping: () => Promise<number> = async () => {
+        const uptime: number = (Date.now() - this.createdAt) / 1000;
+        this.sendRaw(`PING ${uptime}`);
+        await awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", uptime.toString()] });
+        const delay = (Date.now() - this.createdAt) / 1000 - uptime;
+        this.emit("pong", delay);
+        return delay;
     }
 
     /**
@@ -145,12 +150,8 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
      * Rejects with possible errors emited by the websocket.
      */
     private async createSocket():Promise<void> {
-         if (this.connected) {
-            throw new Error("Already connected");
-        }
-
         const { url } = this.options;
-        let ws: WebSocket = this.ws = new WebSocket(url);
+        let ws: WebSocket = this.ws = new Tws.WebSocket(url);
 
         ws.onmessage = this.onMessage;
 
@@ -186,7 +187,8 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
             if (parsed.message) {
                 const message: IIRCMessage = parsed.message;
                 this.emit("receive", message);
-                this.twitch.emit(message.command.toLocaleLowerCase(), message);
+                const command: TwitchCommands = message.command.toLowerCase() as TwitchCommands;
+                this.twitch.emit(command, message as ITwitchEventMap[TwitchCommands]);
             } else if (parsed.error) {
                 this.emit("parsing-error", parsed.error);
             }

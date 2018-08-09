@@ -1,4 +1,5 @@
 const { resolve } = require('path');
+const htmlPlugin = require('html-webpack-plugin');
 
 module.exports = (_, {w, watch}) => {
 	const isDev = w || watch || false;
@@ -13,6 +14,14 @@ module.exports = (_, {w, watch}) => {
 		devtool: "sourcemap",
 		module: {
 			rules: [
+				{
+					test: /\.less$/,
+					use: [
+						'style-loader',
+						'css-loader',
+						'less-loader'
+					]
+				},
 				{
 					test: /\.m?js$/,
 					loader: 'source-map-loader',
@@ -40,7 +49,10 @@ module.exports = (_, {w, watch}) => {
 					}
 				}
 			]
-		}
+		},
+		plugins: [
+			new htmlPlugin()
+		]
 	}
 
 };

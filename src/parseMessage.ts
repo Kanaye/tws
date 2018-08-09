@@ -5,7 +5,7 @@ export interface IUserPrefix {
     nick: string;
     user?: string;
     host?: string;
-    kind: "user";    
+    kind: "user";
 }
 
 export interface IServerPrefix {

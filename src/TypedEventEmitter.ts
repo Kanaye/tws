@@ -4,9 +4,10 @@ export interface IListenerObject<T> {
     listener: Listener<T>;
     once: boolean;
 }
+type Listeners<T> = Array<IListenerObject<T>>;
 
 export type ListenerMap<T> = {
-    [P in keyof T]?: IListenerObject<T[P]>[];
+    [P in keyof T]?: Listeners<T[P]>;
 };
 
 // probaly very badly typed ... but ... works .. and I have no idea on how to improve it (right now)
@@ -14,21 +15,24 @@ export default class TypedEventEmitter<T> {
     private listeners: ListenerMap<T> = {};
     get hasListeners(): boolean {
         for (let key in this.listeners) {
-            if ((this.listeners[key] as any[]).length > 0) {
+            if (this.listeners[key].length > 0) {
                 return true;
             }
         }
         return false;
     }
     hasTypesListener<K extends keyof T>(eventname: K): boolean {
-        return this.listeners[eventname] && (this.listeners[eventname] as IListenerObject<T[K]>[]).length > 0;
+        if (this.listeners[eventname]) {
+            console.log(this.listeners[eventname].length);
+        }
+        return this.listeners[eventname] && this.listeners[eventname].length > 0;
     }
 
     on<K extends keyof T>(eventname: K, listener: Listener<T[K]>, once: boolean = false):this {
         if (!this.listeners[eventname]) {
             this.listeners[eventname] = [];
         }
-        (this.listeners[eventname] as IListenerObject<T[K]>[]).push({
+        this.listeners[eventname].push({
             listener,
             once: once
         });
@@ -55,7 +59,7 @@ export default class TypedEventEmitter<T> {
         for (let i: number = 0; i < listeners.length; i++) {
             listeners[i].listener(arg);
         }
-        this.listeners[eventname] = listeners.filter(l => !l.once);
+        this.listeners[eventname] = this.listeners[eventname].filter(l => !l.once);
         return this;
     }
 }

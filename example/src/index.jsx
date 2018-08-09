@@ -4,39 +4,43 @@ import Dexie from "dexie";
 import VirtualList from "preact-virtual-list";
 import { DateTime } from "luxon";
 
-const externalProvider = (oState) => {
-    const instances = [];
-    const lastState = { state: oState };
-    class StateComponent extends Component {
-        constructor() {
-            super();
-            this.state = oState;
-        }
-        render(_, state) {
-            return h(this.props.Child, { ...state });
-        }
+const listener = function(m) {
+    this.setState({
+        history: this.state.history.concat([m])
+    });
+};
 
-        componentWillMount() {
-            this.index = instances.push(this);
-            this.setState(lastState.state);
-        }
-
-        componentWillUnmount() {
-            lastState.splice(this.index, 1);
-        }
-    }
-    return {
-        StateComponent,
-        setState: (s) => {
-            lastState.state = s;
-            instances.forEach(r => r.setState(s));
-        }
-    };
+const renderPrivmsg = (m) => {
+    const send = DateTime.fromMillis(Number(m.tags["tmi-send-ts"]));
+    return (
+        <div class="message">
+            <span class="date">[{send.setZone('Europe/Berlin').toFormat('TT')}]</span> 
+            <span class="nick" data-color={m.tags.color}>{m.tags['display-name'] || m.prefix.user}</span>
+            <span class="channel">{m.params[0]}</span>:
+            <span class="message">{m.params[1]}</span>
+        </div>
+    );
 }
 
-const RenderableList = ({ history }) => {
-    return (<VirtualList style="max-height: 100vh; padding: 0; margin: 0; border: 0; overflow-y: scroll;" rowHeight={50} overscanCount={10} data={history} renderRow={(r) =>(<div style={`min-height: 50px; border-bottom: 1px solid ${r.type == 0 ? '#f00' : '#00f'}; padding: 5px; `}>{r.raw}</div>)} />);
-};
+class TwitchChatList extends Component {
+    constructor() {
+        super();
+        this.state = { history: [] }
+        this.listener = listener.bind(this);
+    } 
+    
+    componentWillMount() {
+        this.props.tws.twitch.on('privmsg', this.listener);
+    }
+
+    componentWillUnmount() {
+        this.props.tws.twitch.off('privmsg', this.listener);   
+    }
+
+    render(_, { history }) {
+        return <VirtualList overscan={10} rowHeight="3rem" data={history} renderRow={renderPrivmsg} />
+    }
+}
 
 async function main () {
     const tws = new Tws();
@@ -46,43 +50,26 @@ async function main () {
     db.version(2).stores({
         raw: '++id,text,type,date,msgtype'
     });
-    const history = [];
-    const { setState, StateComponent } = externalProvider({ history });
     tws.on('raw-send', (r) => {
-		console.groupCollapsed('<<<');
-		console.log(r);
-		console.groupEnd();
+        console.groupCollapsed('<<<');
+        console.log(r);
+        console.groupEnd();
         db.raw.add({
             text: r.message,
             type: "outgoing",
             date: (new Date()).toJSON()
         });
         
-        history.push({
-            date: new Date(),
-            raw: r.message,
-            type: 0
-		});
-		setState({ history });
     });
-  /*
-    tws.twitch.on('privmsg', (m) => {
-        console.groupCollapsed(`[${DateTime.fromJSDate(new Date).toFormat('TT')}]%c ${m.tags['display-name'] || m.prefix }%c: ${m.params}`, `color: ${m.tags.color}`, 'color: inherit;');
-        console.log(m);
-        console.groupEnd();
-	});
-   */ 
 
     tws.on('receive', (r) => {
-		if (r.command === "PRIVMSG") {
-	        console.groupCollapsed(`>>> %c ${r.tags['display-name'] || r.prefix.user }%c: [${r.params[0]}]%c: ${r.params[1]}`, `color: ${r.tags.color}`, 'color: #666;', 'color: inherit;');
-		} else{
-			console.groupCollapsed(`>>> '${r.raw}'`);
-		}
-		console.log(r);
-		console.groupEnd();
-        history.push({ type: 1, ...r});
-        setState({ history });
+        if (r.command === "PRIVMSG") {
+            console.groupCollapsed(`>>> %c ${r.tags['display-name'] || r.prefix.user }%c: [${r.params[0]}]%c: ${r.params[1]}`, `color: ${r.tags.color}`, 'color: #666;', 'color: inherit;');
+        } else{
+            console.groupCollapsed(`>>> '${r.raw}'`);
+        }
+        console.log(r);
+        console.groupEnd();
         const { raw: text, ...meta } = r;
         db.raw.add({
             text,
@@ -95,7 +82,7 @@ async function main () {
     await tws.connect();
     await tws.join("#germandota");
 
-    render(<StateComponent Child={RenderableList} />, document.body);
+    render(<TwitchChatList tws={tws} />, document.body);
 }
 
 document.addEventListener('readystatechange', () => {

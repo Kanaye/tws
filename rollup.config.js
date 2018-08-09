@@ -1,6 +1,6 @@
 import typescript from "rollup-plugin-typescript2";
 import babel from "rollup-plugin-babel";
-
+import tsc from "typescript";
 import * as pkg from "./package.json";
 
 export default [
@@ -16,6 +16,7 @@ export default [
             typescript({
                 tsconfig: "./config/tsconfig.browser.json",
                 sourcemap: true,
+                typescript: tsc
             })
         ]
     },
@@ -42,7 +43,8 @@ export default [
                         declaration: false
                     }
                 },
-                useTsconfigDeclarationDir: true
+                useTsconfigDeclarationDir: true,
+                typescript: tsc
             }),
             babel({
                 presets: [

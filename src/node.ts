@@ -1,21 +1,23 @@
-import IWebsocketConstructor from "./Websocket";
 import Tws from "./index";
-
+export * from "./index";
+import { ITwsOptions } from "./index";
 /**
  * Dirty runtime require workaround ... there 's probably a better way of doing this.
- * But I'm not familiar enough with TS yet and I'm too lazy to search.
+ * But I'm not familiar enough with TS yet.
  * If you know of a better solution, tell me ;)
  */
 declare var require: (module: string) => any;
-
 // entry point for nodejs requiring ws or uws as the websocket implementation
-let WebSocket: IWebsocketConstructor;
+let WSC: typeof WebSocket;
 try {
-  WebSocket = require("uws") as IWebsocketConstructor;
+  WSC = require("uws") as typeof WebSocket;
 } catch(e) {
-  WebSocket = require("ws") as IWebsocketConstructor;
+  WSC = require("ws") as typeof WebSocket;
 }
 
-Tws.WebSocket = WebSocket;
-
-export default Tws;
+export default function (options: ITwsOptions = {}) {
+  let opts: ITwsOptions = Object.assign({}, { connectionOptions: {} }, options);
+  opts.connectionOptions = Object.assign({}, { WebSocket: WSC });
+  console.log(opts);
+  return new Tws(opts);
+}

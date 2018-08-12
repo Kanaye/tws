@@ -1,3 +1,12 @@
 {
-    "extends": "./config/tsconfig.base.json",
+    "compilerOptions": {
+        "sourceMap": true,
+        "lib": [
+            "dom",
+            "es2015"
+        ],
+        "target": "esnext",
+        "strict": true,
+        "declaration": false
+    }
 }

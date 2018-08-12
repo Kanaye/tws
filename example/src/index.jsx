@@ -27,7 +27,7 @@ class TwitchChatList extends Component {
 		super();
 		this.state = { history: [], ping: null };
 		this.onPrivmsg = listener.bind(this);
-		this.onPong = (ping) => this.setState({ ping });
+		this.onPong = (ping) =>  this.setState({ ping });
 	}
 
 	componentWillMount() {
@@ -45,14 +45,21 @@ class TwitchChatList extends Component {
 	render(_, { history, ping }) {
 		return (
 			<div>
-				<p>Ping: {null && ping.toFixed(3)}ms</p>
-				<VirtualList class="message-list" overscanCount={150} data={history} renderRow={renderPrivmsg} />
+				<p>Ping: {ping !== null && ping.toFixed(3)}ms</p>
+				<VirtualList rowHeight={26} class="message-list" overscanCount={150} data={history} renderRow={renderPrivmsg} />
 			</div>);
 	}
 }
 
 async function main() {
-	const tws = new Tws();
+	let options = {};
+	if (localStorage.getItem("user") && localStorage.getItem("token") && localStorage.getItem("shouldLogin")) {
+		options.auth = {
+			username: localStorage.getItem("user"),
+			password: localStorage.getItem("token")
+		};
+	}
+	const tws = new Tws(options);
 	window.tws = tws;
 	const db = new Dexie('log');
 	window.db = db;
@@ -93,7 +100,6 @@ async function main() {
 		});
 	});
 	await tws.connect();
-	await tws.join("#germandota");
 
 	render(<TwitchChatList tws={tws} />, document.body);
 

@@ -1,5 +1,4 @@
 import SimpleEventEmitter, { Listener } from "./TypedEventEmitter";
-import { ENOMEM } from "constants";
 
 // tslint:disable:no-empty
 export function noop(): void { }
@@ -8,6 +7,9 @@ function partialEquals<T>(obj: T, needle: Partial<T>): boolean {
     // tslint:disable:forin
     for (let key in needle) {
         const value: any = needle[key];
+        if (value === undefined) {
+            continue;
+        }
         if (obj[key] === undefined) {
             return false;
         } else if (typeof value === "object" && typeof obj[key] === "object") {
@@ -49,5 +51,11 @@ export function awaitEvent<T, K extends keyof T>(
             }, timeout);
         }
 
+    });
+}
+
+export function sleep(time: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(), time);
     });
 }

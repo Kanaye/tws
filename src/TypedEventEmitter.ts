@@ -12,27 +12,13 @@ export type ListenerMap<T> = {
 
 // probaly very badly typed ... but ... works .. and I have no idea on how to improve it (right now)
 export default class TypedEventEmitter<T> {
-    private listeners: ListenerMap<T> = {};
-    get hasListeners(): boolean {
-        for (let key in this.listeners) {
-            if (this.listeners[key].length > 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-    hasTypesListener<K extends keyof T>(eventname: K): boolean {
-        if (this.listeners[eventname]) {
-            console.log(this.listeners[eventname].length);
-        }
-        return this.listeners[eventname] && this.listeners[eventname].length > 0;
-    }
+    private _listeners: ListenerMap<T> = {};
 
     on<K extends keyof T>(eventname: K, listener: Listener<T[K]>, once: boolean = false):this {
-        if (!this.listeners[eventname]) {
-            this.listeners[eventname] = [];
+        if (!this._listeners[eventname]) {
+            this._listeners[eventname] = [];
         }
-        this.listeners[eventname].push({
+        (this._listeners[eventname] as IListenerObject<T[K]>[]).push({
             listener,
             once: once
         });
@@ -40,9 +26,9 @@ export default class TypedEventEmitter<T> {
     }
 
     off<K extends keyof T>(event: K, listener: Listener<T[K]>): this {
-        const { listeners } = this;
+        const { _listeners: listeners } = this;
         if (listeners[event]) {
-            this.listeners[event] = (listeners[event] as IListenerObject<T[K]>[]).filter(l => l.listener !== listener);
+            this._listeners[event] = (listeners[event] as IListenerObject<T[K]>[]).filter(l => l.listener !== listener);
         }
         return this;
     }
@@ -52,14 +38,14 @@ export default class TypedEventEmitter<T> {
     }
 
     emit<K extends keyof T>(eventname: K, arg: T[K]): this {
-        const listeners: IListenerObject<T[K]>[] | undefined = this.listeners[eventname];
+        const listeners: IListenerObject<T[K]>[] | undefined = this._listeners[eventname];
         if (!listeners || !listeners.length) {
             return this;
         }
         for (let i: number = 0; i < listeners.length; i++) {
             listeners[i].listener(arg);
         }
-        this.listeners[eventname] = this.listeners[eventname].filter(l => !l.once);
+        this._listeners[eventname] = (this._listeners[eventname] as IListenerObject<T[K]>[]).filter(l => !l.once);
         return this;
     }
 }

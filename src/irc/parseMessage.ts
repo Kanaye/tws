@@ -1,47 +1,27 @@
-export type NextSearch = (str: string, start: number) => number;
-export type IRCTags = Record<string, string>;
+import { IParsedIRCMessage, IRCTags, Prefix } from "./types";
+type NextSearch = (str: string, start: number, fallback?: number) => number;
 
-export interface IUserPrefix {
-    nick: string;
-    user?: string;
-    host?: string;
-    kind: "user";
+interface IIRCParsingResult {
+    message?: IParsedIRCMessage;
+    error?: { error: Error, input: string };
 }
-
-export interface IServerPrefix {
-    server: string;
-    kind: "server";
-}
-
-export type Prefix = IServerPrefix | IUserPrefix;
-
-export interface IIRCMessage {
-    raw: string;
-    tags: IRCTags;
-    prefix: Prefix|null;
-    command: string;
-    params: string[];
-}
-
-export interface IIRCParsingResult {
-    message?: IIRCMessage;
-    error?:  { error: Error, input: string };
-}
-
-export function parseMessages(message: string): IIRCParsingResult[] {
-    const messages: IIRCParsingResult[] = [];
+export function parseMessages(message: string, onMessage: (msg: IParsedIRCMessage) => void, onParsingError: (error: Error, input: string) => void): void {
     let start: number = 0;
     for (let i: number = 0; i < message.length; i++) {
         if (message[i] === "\r" && message[i+1] === "\n") {
             const part: string = message.substring(start, i);
-            messages.push(parseMessage(part));
+            let result = parseMessage(part);
+            if (result.message) {
+                onMessage(result.message);
+            } else if (result.error) {
+                onParsingError(result.error.error, result.error.input);
+            }
             start = i = i + 2;
         }
     }
-    return messages;
 }
 
-function find(token: string, str: string, start: number, reverse: boolean =  false): number {
+function find(token: string, str: string, start: number, reverse: boolean =  false, fallback?: number): number {
     for (; start < str.length; start++) {
         if (reverse) {
             if (token !== str[start]) {
@@ -53,6 +33,9 @@ function find(token: string, str: string, start: number, reverse: boolean =  fal
             }
         }
     }
+    if (fallback !== undefined) {
+        return fallback;
+    }
     throw new Error(`Malformed Message: "${token}" not found in message.`);
 }
 
@@ -62,27 +45,27 @@ export function parseMessage(msg: string): IIRCParsingResult {
             message: internalParseMessage(msg)
         };
     } catch(error) {
-        return { error };
+        return { error: { error, input: msg } };
     }
 }
+
+Object.assign(window, { parseMessage });
 
 
 const contains: (token: string, str: string) => boolean = (token: string, str: string): boolean => {
     try {
-        find(token, str, 0);
-        return true;
+       find(token, str, 0);
+       return true;
     } catch(_) {
         return false;
     }
 }
-const nextNonspace: NextSearch = (str: string, start: number): number => find(" ", str, start, true);
-const nextSpace: NextSearch = (str: string, start: number): number => find(" ", str, start);
+const nextNonspace: NextSearch = (str: string, start: number, fallback?: number): number => find(" ", str, start, true, fallback);
+const nextSpace: NextSearch = (str: string, start: number, fallback?: number): number => find(" ", str, start, false, fallback);
 
-function internalParseMessage(msg: string): IIRCMessage {
-    const message: IIRCMessage = {
+function internalParseMessage(msg: string): IParsedIRCMessage {
+    const message: IParsedIRCMessage = {
         raw: msg,
-        tags: {},
-        prefix: null,
         command: "",
         params: []
     };
@@ -91,7 +74,7 @@ function internalParseMessage(msg: string): IIRCMessage {
     let pos: number = 0;
 
     if (msg[pos] === "@") {
-        const tags: IRCTags = message.tags;
+        const tags: IRCTags = message.tags = {};
         start = ++pos;
         let key: string = "";
 
@@ -116,7 +99,7 @@ function internalParseMessage(msg: string): IIRCMessage {
 
     if (msg[pos] === ":") {
         pos = nextSpace(msg, pos);
-        const prefix: string = msg.substring(start, pos);
+        const prefix: string = msg.substring(++start, pos);
         let userOffset: number | undefined;
         let hostOffset: number | undefined;
         let msgPrefix: Prefix;
@@ -147,19 +130,15 @@ function internalParseMessage(msg: string): IIRCMessage {
     pos = nextSpace(msg, pos);
     message.command = msg.substring(start, pos);
 
-    pos = start = nextNonspace(msg, pos);
-
-    while (pos < msg.length) {
+    while (pos < msg.length){
+        start = pos = nextNonspace(msg, pos);
         if (msg[pos] === ":") {
             message.params.push(msg.substring(++pos, msg.length));
             break;
         }
-        pos = nextSpace(msg, pos);
+        pos = nextSpace(msg, pos, msg.length);
         message.params.push(msg.substring(start, pos));
-        start = ++pos;
-        pos = nextNonspace(msg, pos);
     }
-
     return message;
 }
 

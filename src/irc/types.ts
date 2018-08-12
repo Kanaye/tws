@@ -1,4 +1,4 @@
-export type IRCTags = Record<string, string>;
+export type IRCTags = Record<string, string|undefined>;
 
 export interface IUserPrefix {
     nick: string;

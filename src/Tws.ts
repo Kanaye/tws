@@ -61,7 +61,7 @@ export interface ITwsEventmap {
     "reconnect": null;
     "error": Error;
 }
-Object.assign(window, { parseMessage, serializeMessage })
+
 export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     /**
      * Used to construct the Websocket instance.
@@ -135,6 +135,10 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
             }, (error: Error, input: string) => {
                 this.emit("parsing-error", { error, input })
             });
+        });
+
+        this.twitch.on("reconnect", () => {
+            this.ws.reconnect();
         });
 
     }

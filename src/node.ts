@@ -15,7 +15,7 @@ try {
   WSC = require("ws") as typeof WebSocket;
 }
 
-export default function (options: ITwsOptions = {}) {
+export default function (options: ITwsOptions = {}): Tws {
   let opts: ITwsOptions = Object.assign({}, { connectionOptions: {} }, options);
   opts.connectionOptions = Object.assign({}, { WebSocket: WSC });
   console.log(opts);

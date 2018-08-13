@@ -1,16 +1,33 @@
 import { IParsedIRCMessage, IRCTags, Prefix } from "./types";
+
+const enum Chars {
+    LINE_BREAK = 10,
+    CARRIAGE_RETURN = 13,
+    SPACE = 32,
+    EXCLAMATION = 33,
+    DOT = 46,
+    COLON = 58,
+    SEMICOLON = 59,
+    EQUAL = 61,
+    AT = 64,
+    BACKSLASH = 92
+
+}
+
 type NextSearch = (str: string, start: number, fallback?: number) => number;
 
 interface IIRCParsingResult {
     message?: IParsedIRCMessage;
     error?: { error: Error, input: string };
 }
-export function parseMessages(message: string, onMessage: (msg: IParsedIRCMessage) => void, onParsingError: (error: Error, input: string) => void): void {
+export type OnMessageFn = (msg: IParsedIRCMessage) => void;
+export type OnParsingErrorFn = (error: Error, input: string) => void;
+export function parseMessages(message: string, onMessage: OnMessageFn, onParsingError: OnParsingErrorFn): void {
     let start: number = 0;
     for (let i: number = 0; i < message.length; i++) {
-        if (message[i] === "\r" && message[i+1] === "\n") {
+        if (message.charCodeAt(i) === Chars.CARRIAGE_RETURN && message.charCodeAt(i + 1) === Chars.LINE_BREAK) {
             const part: string = message.substring(start, i);
-            let result = parseMessage(part);
+            let result: IIRCParsingResult = parseMessage(part);
             if (result.message) {
                 onMessage(result.message);
             } else if (result.error) {
@@ -59,7 +76,8 @@ const contains: (token: string, str: string) => boolean = (token: string, str: s
     } catch(_) {
         return false;
     }
-}
+};
+
 const nextNonspace: NextSearch = (str: string, start: number, fallback?: number): number => find(" ", str, start, true, fallback);
 const nextSpace: NextSearch = (str: string, start: number, fallback?: number): number => find(" ", str, start, false, fallback);
 
@@ -73,22 +91,22 @@ function internalParseMessage(msg: string): IParsedIRCMessage {
     let start: number = 0;
     let pos: number = 0;
 
-    if (msg[pos] === "@") {
+    if (msg.charCodeAt(pos) ===Chars.AT) {
         const tags: IRCTags = message.tags = {};
         start = ++pos;
         let key: string = "";
 
         for (; pos < msg.length; pos++) {
-            let c: string = msg[pos];
-            if (c === "=") {
+            let c: number = msg.charCodeAt(pos);
+            if (c === Chars.EQUAL) {
                 key = unescape(msg.substring(start, pos));
                 start = pos + 1;
             }
 
-            if (c === ";" || c === " ") {
+            if (c === Chars.SEMICOLON || c === Chars.SPACE) {
                 tags[key] = unescape(msg.substring(start, pos));
                 start = pos + 1;
-                if (c === " ") {
+                if (c === Chars.SPACE) {
                     break;
                 }
             }
@@ -106,7 +124,8 @@ function internalParseMessage(msg: string): IParsedIRCMessage {
         try {
             userOffset = find("!", prefix, 0);
             hostOffset = find("@", prefix, userOffset);
-        } catch(_){}
+        // tslint:disable:no-empty
+        } catch(_) {}
 
         if (!userOffset) {
             if (contains(".", prefix)) {
@@ -130,7 +149,7 @@ function internalParseMessage(msg: string): IParsedIRCMessage {
     pos = nextSpace(msg, pos);
     message.command = msg.substring(start, pos);
 
-    while (pos < msg.length){
+    while (pos < msg.length) {
         start = pos = nextNonspace(msg, pos);
         if (msg[pos] === ":") {
             message.params.push(msg.substring(++pos, msg.length));

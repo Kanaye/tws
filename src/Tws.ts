@@ -9,7 +9,7 @@ export interface IAuth {
     password: string;
 }
 /**
- * 
+ *
  */
 export interface ICompleteTwsOptions {
     auth: IAuth;
@@ -35,7 +35,7 @@ const defaultSettings: ICompleteTwsOptions = {
                 retries: 5,
                 delay: 5e3
             }
-        }
+        };
     },
     url: "wss://irc-ws.chat.twitch.tv/",
     pingInterval: 15e3,
@@ -119,10 +119,10 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
 
             parseMessages(msg, (m: IParsedIRCMessage) => {
                 this.emit("receive", m);
-                const command = m.command.toLocaleLowerCase() as TwitchCommands;
+                const command: TwitchCommands = m.command.toLocaleLowerCase() as TwitchCommands;
                 this.twitch.emit(command, m as ITwitchEventMap[TwitchCommands]);
             }, (error: Error, input: string) => {
-                this.emit("parsing-error", { error, input })
+                this.emit("parsing-error", { error, input });
             });
         });
 
@@ -144,7 +144,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
      * Sertializes and sends a message to twitch.
      * @param message The message you want to send.
      */
-    send(message: IIRCMessage) {
+    send(message: IIRCMessage): void {
         const raw: string = serializeMessage(message);
         this.sendRaw(raw);
     }
@@ -193,13 +193,13 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     }
 
     /**
-     * Sends a ping to twitch and resolves with the delay.
+     * Sends a ping to twitch and resolves with the delay in miliseconds.
      */
     public ping: () => Promise<number> = async () => {
         const uptime: number = (Date.now() - this.createdAt) / 1000;
         this.send({ command: "PING", params: [`${uptime}`]});
         await awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", uptime.toString()] });
-        const delay = (Date.now() - this.createdAt) / 1000 - uptime;
+        const delay: number = (Date.now() - this.createdAt) / 1000 - uptime;
         this.emit("pong", delay);
         return delay;
     }
@@ -211,7 +211,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
      */
     async join(channel: string, room?: string): Promise<void> {
         const { auth: { username }, eventTimeout } = this.options;
-        const channelID = room == null ? channel : `#chatrooms:${channel}:${room}`;
+        const channelID: string = room == null ? channel : `#chatrooms:${channel}:${room}`;
         this.send({ command: "JOIN", params: [channelID] });
         await awaitEvent(this.twitch, "join", eventTimeout, { params: [channelID], prefix: { kind: "user", nick: username }});
     }

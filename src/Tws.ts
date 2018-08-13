@@ -1,5 +1,5 @@
 import SimpleEventEmitter from "./TypedEventEmitter";
-import { parseMessages, serializeMessage, IParsedIRCMessage, IIRCMessage, parseMessage } from "./irc/index";
+import { parseMessages, serializeMessage, IParsedIRCMessage, IIRCMessage } from "./irc/index";
 import { awaitEvent } from "./utilities";
 import { ITwitchEventMap, TwitchCommands } from "./TwitchEvents";
 import WebSocketManager, { IOptions as WSManagerOptions } from "./WebSocketManager";
@@ -63,17 +63,6 @@ export interface ITwsEventmap {
 }
 
 export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
-    /**
-     * Used to construct the Websocket instance.
-     * You can set it manually to a Websocket implementation
-     * within your env if required.
-     * This library ships with a version for nodejs (import tws/node) setting this
-     * to uws or if uws is not available ws.
-     * The browser version (tws/browser) set 's this automaticly to the WebSocket global.
-     *
-     * @static
-     * @property {IWebsocketConstructor} WebSocket
-     */
     private _loggedIn: boolean = false;
     private ws: WebSocketManager;
     private options: ICompleteTwsOptions;

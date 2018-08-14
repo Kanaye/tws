@@ -10,6 +10,7 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "tslint": "tslint -p . -c tslint.json",
+    "tslint:fix": "tslint -p . --fix -c tslint.json",
     "prettier": "prettier --write .\\src\\**\\*.ts"
   },
   "repository": {

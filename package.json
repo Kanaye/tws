@@ -6,7 +6,7 @@
   "browser": "dist/index.mjs",
   "types": "dist/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "tslint": "tslint -p . -c tslint.json",
@@ -15,7 +15,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "run-s tslint:fix prettier build"
+      "pre-commit": "run-s tslint:fix prettier build test"
     }
   },
   "repository": {
@@ -31,18 +31,22 @@
   "devDependencies": {
     "@babel/core": "^7.0.0-beta.56",
     "@babel/preset-env": "^7.0.0-beta.56",
+    "@types/jest": "^23.3.1",
     "@types/node": "^10.5.6",
     "dset": "^1.0.1",
     "fast-async": "^7.0.6",
     "husky": "^1.0.0-rc.13",
+    "jest": "^23.5.0",
     "npm-run-all": "^4.1.3",
     "prettier": "^1.14.2",
     "rollup": "^0.63.5",
     "rollup-plugin-babel": "^4.0.0-beta.8",
     "rollup-plugin-typescript2": "^0.16.1",
+    "ts-jest": "^23.1.3",
     "tslint": "^5.11.0",
     "tslint-config-prettier": "^1.14.0",
-    "typescript": "^3.0.1"
+    "typescript": "^3.0.1",
+    "ws": "^6.0.0"
   },
   "build": {
     "umdName": "Tws"

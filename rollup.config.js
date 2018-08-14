@@ -63,11 +63,6 @@ export default [
         plugins: [
             typescript({
                 sourcemap: true,
-                tsconfigOverride: {
-                    compilerOptions: {
-                        declaration: true
-                    }
-                },
                 typescript: tsc
             }),
             babel(babelBrowser())

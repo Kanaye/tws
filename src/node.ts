@@ -10,14 +10,15 @@ declare var require: (module: string) => any;
 // entry point for nodejs requiring ws or uws as the websocket implementation
 let WSC: typeof WebSocket;
 try {
+  // tslint:disable:no-var-requires
   WSC = require("uws") as typeof WebSocket;
-} catch(e) {
+} catch (e) {
+  // tslint:disable:no-var-requires
   WSC = require("ws") as typeof WebSocket;
 }
 
-export default function (options: ITwsOptions = {}): Tws {
-  let opts: ITwsOptions = Object.assign({}, { connectionOptions: {} }, options);
+export default function(options: ITwsOptions = {}): Tws {
+  const opts: ITwsOptions = Object.assign({}, { connectionOptions: {} }, options);
   opts.connectionOptions = Object.assign({}, { WebSocket: WSC });
-  console.log(opts);
   return new Tws(opts);
 }

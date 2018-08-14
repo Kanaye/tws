@@ -1,68 +1,68 @@
 import { IIRCMessage, IRCTags } from "./types";
 
 function serializeTag(input: string): string {
-    let out: string = "";
-    for (let i: number = 0; i < input.length; i++) {
-        let char: string = input[i];
-        switch (input[++i]) {
-            case "\\":
-                char = "\\\\";
-                break;
-            case " ":
-                char = "\\s";
-                break;
-            case "\r":
-                char = "\\r";
-                break;
-            case "\n":
-                char = "\\n";
-                break;
-        }
-        out += char;
+  let out: string = "";
+  for (let i: number = 0; i < input.length; i++) {
+    let char: string = input[i];
+    switch (input[++i]) {
+      case "\\":
+        char = "\\\\";
+        break;
+      case " ":
+        char = "\\s";
+        break;
+      case "\r":
+        char = "\\r";
+        break;
+      case "\n":
+        char = "\\n";
+        break;
     }
-    return out;
+    out += char;
+  }
+  return out;
 }
 
 export function serializeMessage(message: IIRCMessage): string {
-    let serialized: string[] = [];
-    if (message.tags) {
-        const tags: IRCTags = message.tags;
-        serialized.push(
-            Object.keys(message.tags)
-                .map(k => {
-                    const value: string = tags[k] || "";
-                    return `${serializeTag(k)}=${serializeTag(value)}`;
-                })
-                .join(";")
-        );
-    }
+  const serialized: string[] = [];
+  if (message.tags) {
+    const tags: IRCTags = message.tags;
+    serialized.push(
+      Object.keys(message.tags)
+        .map(k => {
+          const value: string = tags[k] || "";
+          return `${serializeTag(k)}=${serializeTag(value)}`;
+        })
+        .join(";")
+    );
+  }
 
-    if (message.prefix) {
-        let prefix = message.prefix;
-        let out = ":";
-        switch(prefix.kind) {
-            case "server":
-                out += prefix.server;
-                break;
-            case "user":
-                out += prefix.nick;
-                if (prefix.user) {
-                    out += `!${prefix.user}`;
-                }
-                if (prefix.host) {
-                    out += `@${prefix.host}`;
-                }
-                break;
+  if (message.prefix) {
+    const prefix = message.prefix;
+    let out = ":";
+    switch (prefix.kind) {
+      case "server":
+        out += prefix.server;
+        break;
+      case "user":
+        out += prefix.nick;
+        if (prefix.user) {
+          out += `!${prefix.user}`;
         }
-        serialized.push(out);
+        if (prefix.host) {
+          out += `@${prefix.host}`;
+        }
+        break;
     }
+    serialized.push(out);
+  }
 
-    serialized.push(message.command.toUpperCase());
+  serialized.push(message.command.toUpperCase());
 
-    const last = message.params.pop();
-    const rest = message.params.join(" ");
+  const last = message.params.pop();
+  const rest = message.params.join(" ");
 
-    serialized.push(`${rest} :${last}`); 
+  serialized.push(`${rest} :${last}`);
 
-    return serialized.join(' ');
+  return serialized.join(" ");
 }

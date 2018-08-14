@@ -11,7 +11,12 @@
     "dev": "rollup -c -w",
     "tslint": "tslint -p . -c tslint.json",
     "tslint:fix": "tslint -p . --fix -c tslint.json",
-    "prettier": "prettier --write .\\src\\**\\*.ts"
+    "prettier": "prettier --write ./src/**/*.ts"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "run-s tslint:fix prettier build"
+    }
   },
   "repository": {
     "type": "git",
@@ -29,6 +34,8 @@
     "@types/node": "^10.5.6",
     "dset": "^1.0.1",
     "fast-async": "^7.0.6",
+    "husky": "^1.0.0-rc.13",
+    "npm-run-all": "^4.1.3",
     "prettier": "^1.14.2",
     "rollup": "^0.63.5",
     "rollup-plugin-babel": "^4.0.0-beta.8",

@@ -4,14 +4,19 @@ import SimpleEventEmitter from "./TypedEventEmitter";
 import { awaitEvent } from "./utilities";
 import WebSocketManager, { IOptions as WSManagerOptions } from "./WebSocketManager";
 
+/**
+ * Login options you need to provide if you want to send chat messages.
+ * 
+ * @public
+ * @property username - The username to login with in lowercase.
+ * @property password - Am oauth token for twitch with scope "chat_login". You can get one at http://www.twitchapps.com/tmi/
+ */
 export interface IAuth {
   username: string;
   password: string;
 }
-/**
- *
- */
-export interface ICompleteTwsOptions {
+
+interface ICompleteTwsOptions {
   auth: IAuth;
   url: string;
   pingInterval: number;
@@ -63,7 +68,11 @@ export interface ITwsEventmap {
   reconnect: null;
   error: Error;
 }
-
+/**
+ * Tws handles websocket connection, reconnects, 
+ * serialization and sending of messages,
+ * parsing of incomming messages and dispatches events for them.
+ */
 export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
   /**
    * True if a connection to twitch is open
@@ -72,8 +81,10 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
   get connected(): boolean {
     return this.ws.connected && this._loggedIn;
   }
+  /**
+   * The event emitter on which all received irc messages are dispatched on.
+   */
   public twitch: SimpleEventEmitter<ITwitchEventMap> = new SimpleEventEmitter();
-  reconnecting: boolean = false;
 
   // tslint:disable:variable-name
   private _loggedIn: boolean = false;
@@ -150,7 +161,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
 
   /**
    * Sertializes and sends a message to twitch.
-   * @param message The message you want to send.
+   * @param message - The message you want to send.
    */
   send(message: IIRCMessage): void {
     const raw: string = serializeMessage(message);
@@ -176,7 +187,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
   }
 
   /**
-   * disconnects from twitch
+   * Disconnects from twitchs WebIRC Gateway. 
    */
   disconnect(): void {
     if (this.ws.connected) {

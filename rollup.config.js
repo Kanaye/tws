@@ -62,8 +62,13 @@ export default [
         }],
         plugins: [
             typescript({
-                sourcemap: true,
-                typescript: tsc
+                typescript: tsc,
+                tsconfigOverride: {
+                    compilerOptions: {
+                        declaration: true
+                    }
+                },
+                useTsconfigDeclarationDir: true
             }),
             babel(babelBrowser())
         ]
@@ -82,12 +87,6 @@ export default [
         plugins: [
             typescript({
                 sourcemap: true,
-                tsconfigOverride: {
-                    compilerOptions: {
-                        declaration: false
-                    }
-                },
-                useTsconfigDeclarationDir: true,
                 typescript: tsc
             }),
             babel(babelNode())

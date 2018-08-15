@@ -4,9 +4,16 @@ export interface IListenerObject<T> {
   listener: Listener<T>;
   once: boolean;
 }
+
 type Listeners<T> = Array<IListenerObject<T>>;
 
-export type ListenerMap<T> = { [P in keyof T]?: Listeners<T[P]> };
+interface IError {
+    "error": Error;
+}
+
+export type ListenerMap<T> = { 
+    [P in keyof T]?: Listeners<T[P]> 
+};
 
 // probaly very badly typed ... but ... works .. and I have no idea on how to improve it (right now)
 export default class TypedEventEmitter<T> {
@@ -39,16 +46,15 @@ export default class TypedEventEmitter<T> {
   }
 
   emit<K extends keyof T>(eventname: K, arg: T[K]): this {
-    const listeners: Array<IListenerObject<T[K]>> | undefined = this._listeners[eventname];
+    const listeners: Listeners<T[K]> | undefined = this._listeners[eventname];
     if (!listeners || !listeners.length) {
       return this;
     }
     for (const entry of listeners) {
       entry.listener(arg);
     }
-    this._listeners[eventname] = (this._listeners[eventname] as Array<
-      IListenerObject<T[K]>
-    >).filter(l => !l.once);
+
+    this._listeners[eventname] = (this._listeners[eventname] as Listeners<T[K]>).filter(l => !l.once);
     return this;
   }
 }

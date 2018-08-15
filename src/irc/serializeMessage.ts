@@ -59,10 +59,27 @@ export function serializeMessage(message: IIRCMessage): string {
 
   serialized.push(message.command.toUpperCase());
 
-  const last = message.params.pop();
+  const last = String(message.params.pop());
+  for (const param of message.params) {
+    if (param.indexOf(" ") !== -1) {
+      throw new Error("Only the last message parameter can contain spaces.");
+    }
+
+    if (param[0] === ":") {
+      throw new Error('Message parameters can not start with ":".');
+    }
+
+    if (param.indexOf("\n") !== -1) {
+      throw new Error("Messages can not contain new lines (\\n).");
+    }
+
+    if (param.indexOf("\r") !== -1) {
+      throw new Error("Messages can not contain carriage returns (\\r).");
+    }
+  }
   const rest = message.params.join(" ");
 
-  serialized.push(`${rest} :${last}`);
+  serialized.push(`${rest.length}${rest.length > 0 || last.indexOf(" ") > -1 ? " :" : ""}${last}`);
 
   return serialized.join(" ");
 }

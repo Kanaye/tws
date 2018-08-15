@@ -199,43 +199,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     this.emit("pong", delay);
     return delay;
   };
-
-  /**
-   * Joins a channel.
-   * @param channel Either the lowercased name of the channel prepended with "#" or the channels id if joining a room.
-   * @param room The rooms uuid required if joining a room (see https://dev.twitch.tv/docs/irc#twitch-irc-capability-chat-rooms)
-   */
-  async join(channel: string, room?: string): Promise<void> {
-    const {
-      auth: { username },
-      eventTimeout
-    } = this.options;
-    const channelID: string = room == null ? channel : `#chatrooms:${channel}:${room}`;
-    this.send({ command: "JOIN", params: [channelID] });
-    await awaitEvent(this.twitch, "join", eventTimeout, {
-      params: [channelID],
-      prefix: { kind: "user", nick: username }
-    });
-  }
-
-  /**
-   * Leaves a channel.
-   * @param channel Either the lower cased channel name prepended with a # or the channel id if joining rooms.
-   * @param room The rooms uuid, required if joining a room.
-   */
-  async part(channel: string, room?: string): Promise<void> {
-    const {
-      auth: { username },
-      eventTimeout
-    } = this.options;
-    const channelID: string = room == null ? channel : `#chatrooms:${channel}:${room}`;
-    this.send({ command: "PART", params: [channelID] });
-    await awaitEvent(this.twitch, "part", eventTimeout, {
-      params: [channelID],
-      prefix: { kind: "user", nick: username }
-    });
-  }
-
+ 
   /**
    * Sends a *raw* message through the websocket.
    *

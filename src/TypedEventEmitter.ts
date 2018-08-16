@@ -8,12 +8,10 @@ export interface IListenerObject<T> {
 type Listeners<T> = Array<IListenerObject<T>>;
 
 interface IError {
-    "error": Error;
+  error: Error;
 }
 
-export type ListenerMap<T> = { 
-    [P in keyof T]?: Listeners<T[P]> 
-};
+export type ListenerMap<T> = { [P in keyof T]?: Listeners<T[P]> };
 
 // probaly very badly typed ... but ... works .. and I have no idea on how to improve it (right now)
 export default class TypedEventEmitter<T> {
@@ -54,7 +52,9 @@ export default class TypedEventEmitter<T> {
       entry.listener(arg);
     }
 
-    this._listeners[eventname] = (this._listeners[eventname] as Listeners<T[K]>).filter(l => !l.once);
+    this._listeners[eventname] = (this._listeners[eventname] as Listeners<T[K]>).filter(
+      l => !l.once
+    );
     return this;
   }
 }

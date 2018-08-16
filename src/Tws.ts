@@ -6,7 +6,7 @@ import WebSocketManager, { IOptions as WSManagerOptions } from "./WebSocketManag
 
 /**
  * Login options you need to provide if you want to send chat messages.
- * 
+ *
  * @public
  * @property username - The username to login with in lowercase.
  * @property password - Am oauth token for twitch with scope "chat_login". You can get one at http://www.twitchapps.com/tmi/
@@ -69,7 +69,7 @@ export interface ITwsEventmap {
   error: Error;
 }
 /**
- * Tws handles websocket connection, reconnects, 
+ * Tws handles websocket connection, reconnects,
  * serialization and sending of messages,
  * parsing of incomming messages and dispatches events for them.
  */
@@ -187,7 +187,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
   }
 
   /**
-   * Disconnects from twitchs WebIRC Gateway. 
+   * Disconnects from twitchs WebIRC Gateway.
    */
   disconnect(): void {
     if (this.ws.connected) {
@@ -210,7 +210,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     this.emit("pong", delay);
     return delay;
   };
- 
+
   /**
    * Sends a *raw* message through the websocket.
    *

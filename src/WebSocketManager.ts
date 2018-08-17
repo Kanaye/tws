@@ -110,14 +110,16 @@ export default class WebSocketManager extends TypedEventEmitter<IEventmap> {
   private async _connect(): Promise<WebSocket> {
     let ws: WebSocket | null = null;
     const { retries: maxRetries, delay } = this.options.reconnect;
-    for (let i: number = 0; i < maxRetries; i++) {
+    let i: number = 0;
+    do {
       try {
         ws = await createWS(this.url, this.options.WebSocket);
         break;
-      } catch (_) {
-        await sleep(delay);
+      } catch (e) {
+        this.emit("error", e);
       }
-    }
+      await sleep(delay);
+    } while(++i < maxRetries);
     if (!ws) {
       throw new Error(`Timed out connecting to ${this.url}`);
     }
@@ -127,7 +129,7 @@ export default class WebSocketManager extends TypedEventEmitter<IEventmap> {
 
   private _bindEvents(ws: WebSocket): void {
     ws.onclose = () => {
-      if (!this.shouldClose) {
+      if (!this.shouldClose && this.options.reconnect.auto) {
         this.reconnect().catch(e => this.emit("error", e));
       }
     };

@@ -1,11 +1,50 @@
 type ReadyStates = WebSocketMock["CONNECTING"] | WebSocketMock["OPEN"] | WebSocketMock["CLOSING"] | WebSocketMock["CLOSED"];
+type IResolveable = (value: WebSocketMock) => any;
+let lastInstance: WebSocketMock;
+const promises: IResolveable[] = [];
+// tslint:disable:no-empty
+const noop = () => {};
+const onmessage = Symbol("onmessage");
+const onclose = Symbol("onclose");
+const onerror = Symbol("onerror");
+const onopen = Symbol("onopen");
+
+type MessageHandler = (ev?: MessageEvent) => any;
+type CloseHandler = (ev?: CloseEvent) => any;
+type OpenHandler = (ev?: Event) => any;
+type ErrorHandler = (ev?: Event) => any;
 
 export default class WebSocketMock implements WebSocket {
-    static lastInstance: WebSocketMock;
     static readonly CONNECTING: number = 0;
     static readonly OPEN: number = 1;
     static readonly CLOSING: number = 2;
     static readonly CLOSED: number = 3;
+    static get lastInstance(): WebSocketMock {
+        return lastInstance;   
+    }
+
+    static set lastInstance(instance: WebSocketMock) {
+        lastInstance = instance;
+        let r;
+        // tslint:disable:no-conditional-assignment
+        while ((r = promises.pop()) != null) {
+            r(instance);
+        }
+    }
+
+    static get nextSocket(): Promise<WebSocketMock> {
+        return new Promise(r => {
+            promises.push((wsm: WebSocketMock) => r(wsm));
+        });
+    }
+
+    static async autoOpenNext() {
+        const mock = await WebSocketMock.nextSocket;
+        setTimeout(() => {
+            mock.onopen();
+        }, 100);
+    }
+
     readonly CONNECTING: number = 0;
     readonly OPEN: number = 1;
     readonly CLOSING: number = 2;
@@ -31,10 +70,40 @@ export default class WebSocketMock implements WebSocket {
 
     
     url: string;
-    onmessage: null | ((ev?: MessageEvent) => any) = null;
-    onclose: null | ((ev?: CloseEvent) => any) = null;
-    onerror: null | ((ev?: Event) => any) = null;
-    onopen: null | ((ev?: Event) => any) = null;
+    [onmessage]: MessageHandler | null = null;
+    [onerror]: ErrorHandler | null = null;
+    [onopen]: OpenHandler | null = null;
+    [onclose]: CloseHandler | null = null;
+    set onmessage(h: MessageHandler) {
+        this[onmessage] = h;
+    }
+    get onmessage(): MessageHandler {
+        return this[onmessage] || noop;   
+    }
+
+    set onclose(h: CloseHandler) {
+        this[onclose] = h;
+    }
+
+    get onclose(): CloseHandler {
+        return this[onclose] || noop;
+    }
+
+    set onerror(h: ErrorHandler) {
+        this[onerror] = h;
+    }
+
+    get onerror(): ErrorHandler {
+        return this[onerror] || noop;
+    }
+
+    set onopen(h: OpenHandler) {
+        this[onopen] = h;
+    }
+
+    get onopen(): OpenHandler {
+        return this[onopen] || noop;
+    }
 
     get readyState(): ReadyStates {
         return this.iReadyState;
@@ -46,6 +115,7 @@ export default class WebSocketMock implements WebSocket {
     constructor(url: string, protocols?: string | string[]) {
         this.url = url;
         WebSocketMock.lastInstance = this;
+        this.iReadyState = WebSocketMock.OPEN;
     }
 
     close(code?: number, reason?: string) {

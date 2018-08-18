@@ -1,5 +1,5 @@
 {
-  "name": "tws",
+  "name": "@jancba/tws",
   "version": "0.0.1",
   "description": "A low-level library to connect to the twitch chat.",
   "main": "dist/node.js",
@@ -15,12 +15,12 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "run-s tslint:fix prettier build test"
+      "pre-commit": "run-s tslint prettier build test"
     }
   },
   "repository": {
     "type": "git",
-    "url": "github.com/kanaye/tws.git"
+    "url": "github.com/jancba/tws.git"
   },
   "keywords": [
     "Chat",

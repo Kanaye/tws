@@ -59,9 +59,8 @@ export function serializeMessage(message: IIRCMessage): string {
 
   serialized.push(message.command.toUpperCase());
 
-  const last = String(message.params.pop());
   for (const param of message.params) {
-    if (param.indexOf(" ") !== -1) {
+    if (param.indexOf(" ") !== -1 && param !== message.params[message.params.length - 1]) {
       throw new Error("Only the last message parameter can contain spaces.");
     }
 
@@ -77,9 +76,12 @@ export function serializeMessage(message: IIRCMessage): string {
       throw new Error("Messages can not contain carriage returns (\\r).");
     }
   }
+  const last = String(message.params.pop());
   const rest = message.params.join(" ");
 
-  serialized.push(`${rest.length}${rest.length > 0 || last.indexOf(" ") > -1 ? " :" : ""}${last}`);
+  serialized.push(
+    `${rest.length > 0 ? `${rest} ` : ""}${last.indexOf(" ") > -1 ? ":" : ""}${last}`
+  );
 
   return serialized.join(" ");
 }

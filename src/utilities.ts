@@ -58,3 +58,39 @@ export function sleep(time: number): Promise<void> {
     setTimeout(() => resolve(), time);
   });
 }
+
+export function contains(token: string, str: string): boolean  {
+  return str.indexOf(token) !== -1;
+};
+
+export function find(
+  token: string,
+  str: string,
+  start: number,
+  reverse: boolean = false,
+  fallback?: number
+): number {
+  for (; start < str.length; start++) {
+    if (reverse) {
+      if (token !== str[start]) {
+        return start;
+      }
+    } else {
+      if (token === str[start]) {
+        return start;
+      }
+    }
+  }
+  if (fallback !== undefined) {
+    return fallback;
+  }
+  throw new Error(`"${token}" not found in string "${str}"`);
+}
+
+export function nextNonspace(str: string, start: number, fallback?: number): number {
+  return find(" ", str, start, true, fallback);
+};
+
+export function nextSpace(str: string, start: number, fallback?: number): number {
+  return find(" ", str, start, false, fallback);
+}

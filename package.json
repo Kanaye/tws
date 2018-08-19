@@ -11,11 +11,13 @@
     "dev": "rollup -c -w",
     "tslint": "tslint -p . -c tslint.json",
     "tslint:fix": "tslint -p . --fix -c tslint.json",
-    "prettier": "prettier --write ./{src,test}/**/*.ts"
+    "prettier": "prettier --write ./{src,test}/**/*.ts",
+    "lint-all": "run-s prettier tslint:fix",
+    "add-staged": "git add ."
   },
   "husky": {
     "hooks": {
-      "pre-commit": "run-s tslint prettier build test"
+      "pre-commit": "run-s lint-all build test add-staged"
     }
   },
   "repository": {

@@ -41,14 +41,13 @@ describe("irc - serialization", () => {
       });
     }).toThrow("Only the last message parameter can contain spaces.");
   });
-
   it("should throw if a param contains new lines", () => {
     expect(() => {
       serializeMessage({
         command: "TEST",
         params: ["test\n"]
       });
-    }).toThrow("Messages can not contain new lines (\\n).");
+    }).toThrow(`Messages parameters can't contain "\\n".`);
   });
 
   it("should throw if a param contains new lines", () => {
@@ -57,7 +56,7 @@ describe("irc - serialization", () => {
         command: "TEST",
         params: ["test\r"]
       });
-    }).toThrow("Messages can not contain carriage returns (\\r).");
+    }).toThrow('Messages parameters can\'t contain "\\r".');
   });
 
   it('should throw if a param startsWith ":"', () => {
@@ -66,6 +65,6 @@ describe("irc - serialization", () => {
         command: "TEST",
         params: [":"]
       });
-    }).toThrow(`Message parameters can not start with ":".`);
+    }).toThrow(`Messages parameters can not start with ":".`);
   });
 });

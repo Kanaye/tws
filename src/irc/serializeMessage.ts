@@ -1,4 +1,21 @@
+import { contains } from "../utilities";
 import { IIRCMessage, IRCTags } from "./types";
+
+function toPrintable(c: string): string {
+  const code: number = c.charCodeAt(0);
+  if (code >= 0 && code <= 32) {
+    return JSON.stringify(c);
+  }
+  return `"${c}"`;
+}
+
+function validateInput(str: string, blacklist: string[], name: string) {
+  for (const c of blacklist) {
+    if (contains(c, str)) {
+      throw new Error(`Messages ${name} can't contain ${toPrintable(c)}.`);
+    }
+  }
+}
 
 function serializeTag(input: string): string {
   let out: string = "";
@@ -60,20 +77,15 @@ export function serializeMessage(message: IIRCMessage): string {
   serialized.push(message.command.toUpperCase());
 
   for (const param of message.params) {
-    if (param.indexOf(" ") !== -1 && param !== message.params[message.params.length - 1]) {
+    const blacklist = ["\n", "\r", "\0"];
+    if (param !== message.params[message.params.length - 1] && contains(" ", param)) {
       throw new Error("Only the last message parameter can contain spaces.");
     }
 
+    validateInput(param, blacklist, "parameters");
+
     if (param[0] === ":") {
-      throw new Error('Message parameters can not start with ":".');
-    }
-
-    if (param.indexOf("\n") !== -1) {
-      throw new Error("Messages can not contain new lines (\\n).");
-    }
-
-    if (param.indexOf("\r") !== -1) {
-      throw new Error("Messages can not contain carriage returns (\\r).");
+      throw new Error('Messages parameters can not start with ":".');
     }
   }
   const last = String(message.params.pop());

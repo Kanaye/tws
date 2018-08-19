@@ -1,3 +1,4 @@
+import { contains, find, nextNonspace, nextSpace } from "../utilities";
 import { IParsedIRCMessage, IRCTags, Prefix } from "./types";
 
 const enum Chars {
@@ -44,30 +45,6 @@ export function parseMessages(
   }
 }
 
-function find(
-  token: string,
-  str: string,
-  start: number,
-  reverse: boolean = false,
-  fallback?: number
-): number {
-  for (; start < str.length; start++) {
-    if (reverse) {
-      if (token !== str[start]) {
-        return start;
-      }
-    } else {
-      if (token === str[start]) {
-        return start;
-      }
-    }
-  }
-  if (fallback !== undefined) {
-    return fallback;
-  }
-  throw new Error(`Malformed Message: "${token}" not found in message.`);
-}
-
 export function parseMessage(msg: string): IIRCParsingResult {
   try {
     return {
@@ -77,20 +54,6 @@ export function parseMessage(msg: string): IIRCParsingResult {
     return { error: { error, input: msg } };
   }
 }
-
-const contains: (token: string, str: string) => boolean = (token: string, str: string): boolean => {
-  try {
-    find(token, str, 0);
-    return true;
-  } catch (_) {
-    return false;
-  }
-};
-
-const nextNonspace: NextSearch = (str: string, start: number, fallback?: number): number =>
-  find(" ", str, start, true, fallback);
-const nextSpace: NextSearch = (str: string, start: number, fallback?: number): number =>
-  find(" ", str, start, false, fallback);
 
 function internalParseMessage(msg: string): IParsedIRCMessage {
   const message: IParsedIRCMessage = {

@@ -44,7 +44,7 @@ describe("WebSocketManager", () => {
             if (!wsm) {
                 wsm = WebSocketMock.lastInstance;
             } else {
-                wsm = await WebSocketMock.nextSocket;
+                wsm = await WebSocketMock.nextInstance;
             }
             expect(success).not.toHaveBeenCalled();
             expect(error).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe("WebSocketManager", () => {
     it("should emit connection errors to the handler", async () => {
         const onerror = jest.fn();
         ws = new WebSocketManager("localhost", { WebSocket: WebSocketMock, reconnect: { delay: 0, retries: 1, auto: true } });
-        const r = WebSocketMock.nextSocket;
+        const r = WebSocketMock.nextInstance;
         ws.on("error", onerror);
         const oncatch = jest.fn();
         const p = ws.connect().catch(oncatch);
@@ -100,7 +100,7 @@ describe("WebSocketManager", () => {
         WebSocketMock.autoOpenNext();
         await ws.connect();
         WebSocketMock.lastInstance.onmessage(new MessageEvent("test", { data: "test" }));
-        WebSocketMock.nextSocket.then(r => r.onopen());
+        WebSocketMock.autoOpenNext();
         await ws.reconnect();
         WebSocketMock.lastInstance.onmessage(new MessageEvent("test", { data: "test2" }));
         expect(onmessage.mock.calls).toEqual([["test"], ["test2"]]);
@@ -112,7 +112,7 @@ describe("WebSocketManager", () => {
         ws.send("test");
         ws.send("something");
         ws.send("test 42");
-        expect(WebSocketMock.lastInstance.mockMessages).toEqual(["test", "something", "test 42"]);
+        expect(WebSocketMock.lastInstance.mock.messages).toEqual(["test", "something", "test 42"]);
     });
 
     it("should pass messages to the correct socket after a reconnect", async () => {
@@ -123,7 +123,7 @@ describe("WebSocketManager", () => {
         WebSocketMock.autoOpenNext();
         await ws.reconnect();
         ws.send("42");
-        expect(first.mockMessages).toEqual(["test"]);
-        expect(WebSocketMock.lastInstance.mockMessages).toEqual(["42"]);
+        expect(first.mock.messages).toEqual(["test"]);
+        expect(WebSocketMock.lastInstance.mock.messages).toEqual(["42"]);
     });
 });

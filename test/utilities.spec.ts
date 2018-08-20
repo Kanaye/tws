@@ -5,7 +5,9 @@ describe("utilites - sleep", () => {
     it("should resolve once the time is over", async () => {
         const start = Date.now();
         await sleep(100);
-        expect(Date.now() - start).toBeGreaterThanOrEqual(100);
+        const now = Date.now();
+        expect(now - start).toBeGreaterThanOrEqual(90);
+        expect(now - start).toBeLessThanOrEqual(110);
     });
 });
 

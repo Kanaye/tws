@@ -1,3 +1,5 @@
+import TypedEventEmitter from "../src/TypedEventEmitter";
+
 type ReadyStates = WebSocketMock["CONNECTING"] | WebSocketMock["OPEN"] | WebSocketMock["CLOSING"] | WebSocketMock["CLOSED"];
 type IResolveable = (value: WebSocketMock) => any;
 let lastInstance: WebSocketMock;
@@ -14,11 +16,33 @@ type CloseHandler = (ev?: CloseEvent) => any;
 type OpenHandler = (ev?: Event) => any;
 type ErrorHandler = (ev?: Event) => any;
 
+interface IWSEvents {
+    send: string;
+    close: void;
+}
+
+function createMockObject(mock: WebSocketMock) {
+    return (() => {
+        const self = mock;
+        return {
+            emitter: new TypedEventEmitter<IWSEvents>(),
+            messages: [],
+            send(msg: string) {
+                setTimeout(() => {
+                    const m = new MessageEvent('send', { data: msg + "\r\n" });
+                    self.onmessage(m);
+                }, 10);
+            }
+        };
+    })();
+}
+
 export default class WebSocketMock implements WebSocket {
     static readonly CONNECTING: number = 0;
     static readonly OPEN: number = 1;
     static readonly CLOSING: number = 2;
     static readonly CLOSED: number = 3;
+
     static get lastInstance(): WebSocketMock {
         return lastInstance;   
     }
@@ -32,17 +56,15 @@ export default class WebSocketMock implements WebSocket {
         }
     }
 
-    static get nextSocket(): Promise<WebSocketMock> {
+    static get nextInstance(): Promise<WebSocketMock> {
         return new Promise(r => {
             promises.push((wsm: WebSocketMock) => r(wsm));
         });
     }
 
     static async autoOpenNext() {
-        const mock = await WebSocketMock.nextSocket;
-        setTimeout(() => {
-            mock.onopen();
-        }, 100);
+        const mock = await WebSocketMock.nextInstance;
+        mock.onopen();
     }
 
     readonly CONNECTING: number = 0;
@@ -102,28 +124,36 @@ export default class WebSocketMock implements WebSocket {
     }
 
     get onopen(): OpenHandler {
-        return this[onopen] || noop;
+        return () => {
+            this.iReadyState = WebSocketMock.OPEN;
+            return (this[onopen] || noop)();
+        }
     }
 
     get readyState(): ReadyStates {
         return this.iReadyState;
     }
 
-    mockMessages: string[] = [];
+    mock = createMockObject(this);
+
     private iReadyState: ReadyStates = 0;
 
     constructor(url: string, protocols?: string | string[]) {
         this.url = url;
         WebSocketMock.lastInstance = this;
-        this.iReadyState = WebSocketMock.OPEN;
+        this.iReadyState = WebSocketMock.CONNECTING;
     }
 
     close(code?: number, reason?: string) {
         this.iReadyState = WebSocketMock.CLOSED;
+        this.mock.emitter.emit("close", null);
+        this.iReadyState = WebSocketMock.CLOSING;
+        setTimeout(() => this.iReadyState = WebSocketMock.CLOSED, 10);
     }
 
     send(data: string | ArrayBuffer | ArrayBufferView | Blob) {
-        this.mockMessages.push(data.toString());
+        this.mock.messages.push(data.toString());
+        this.mock.emitter.emit("send", data.toString());
     }
 
     addEventListener(...args: any[]) {

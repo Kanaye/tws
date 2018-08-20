@@ -114,7 +114,6 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
         this.ws.close();
         return;
       }
-
       // perform login
       this.sendRaw(`PASS ${auth.password}`);
       this.sendRaw(`NICK ${auth.username}`);

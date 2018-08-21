@@ -20,7 +20,7 @@ interface ICompleteTwsOptions {
   auth: IAuth;
   url: string;
   pingInterval: number;
-  connectionOptions: WSManagerOptions;
+  connection: WSManagerOptions;
   eventTimeout: number;
 }
 
@@ -35,7 +35,7 @@ const defaultSettings: ICompleteTwsOptions = {
         .substr(-6)}` // random "justinfan" user (anonymous)
     };
   },
-  get connectionOptions(): WSManagerOptions {
+  get connection(): WSManagerOptions {
     return {
       reconnect: {
         auto: true,
@@ -99,7 +99,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
 
     const ws: WebSocketManager = (this.ws = new WebSocketManager(
       this.options.url,
-      this.options.connectionOptions
+      this.options.connection
     ));
 
     ws.on("open", async () => {
@@ -204,7 +204,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
   ping: () => Promise<number> = async () => {
     const uptime: number = (Date.now() - this.createdAt) / 1000;
     this.send({ command: "PING", params: [`${uptime}`] });
-    await awaitEvent(this.twitch, "pong", 2e3, { params: ["tmi.twitch.tv", uptime.toString()] });
+    await awaitEvent(this.twitch, "pong", this.options.eventTimeout, { params: ["tmi.twitch.tv", uptime.toString()] });
     const delay: number = (Date.now() - this.createdAt) / 1000 - uptime;
     this.emit("pong", delay);
     return delay;

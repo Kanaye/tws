@@ -29,7 +29,7 @@ function createMockObject(mock: WebSocketMock) {
             messages: [],
             send(msg: string) {
                 setTimeout(() => {
-                    const m = new MessageEvent('send', { data: msg + "\r\n" });
+                    const m = new MessageEvent('send', { data: msg });
                     self.onmessage(m);
                 }, 10);
             }

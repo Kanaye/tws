@@ -19,6 +19,6 @@ try {
 
 export default function(options: ITwsOptions = {}): Tws {
   const opts: ITwsOptions = Object.assign({}, { connectionOptions: {} }, options);
-  opts.connectionOptions = Object.assign({}, { WebSocket: WSC });
+  opts.connection = Object.assign({}, { WebSocket: WSC });
   return new Tws(opts);
 }

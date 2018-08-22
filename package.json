@@ -13,7 +13,8 @@
     "tslint:fix": "tslint -p . --fix -c tslint.json",
     "prettier": "prettier --write ./{src,test}/**/*.ts",
     "lint-all": "run-s prettier tslint:fix",
-    "add-staged": "git add ."
+    "add-staged": "git add .",
+    "ci": "run-s tslint build test"
   },
   "husky": {
     "hooks": {

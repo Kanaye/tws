@@ -1,6 +1,6 @@
 {
   "name": "@jancba/tws",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A low-level library to connect to the twitch chat.",
   "main": "dist/node.js",
   "browser": "dist/index.mjs",

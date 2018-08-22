@@ -1,6 +1,10 @@
 import TypedEventEmitter from "../src/TypedEventEmitter";
 
-type ReadyStates = WebSocketMock["CONNECTING"] | WebSocketMock["OPEN"] | WebSocketMock["CLOSING"] | WebSocketMock["CLOSED"];
+type ReadyStates =
+    | WebSocketMock["CONNECTING"]
+    | WebSocketMock["OPEN"]
+    | WebSocketMock["CLOSING"]
+    | WebSocketMock["CLOSED"];
 type IResolveable = (value: WebSocketMock) => any;
 let lastInstance: WebSocketMock;
 const promises: IResolveable[] = [];
@@ -29,7 +33,7 @@ function createMockObject(mock: WebSocketMock) {
             messages: [],
             send(msg: string) {
                 setTimeout(() => {
-                    const m = new MessageEvent('send', { data: msg });
+                    const m = new MessageEvent("send", { data: msg });
                     self.onmessage(m);
                 }, 10);
             }
@@ -44,7 +48,7 @@ export default class WebSocketMock implements WebSocket {
     static readonly CLOSED: number = 3;
 
     static get lastInstance(): WebSocketMock {
-        return lastInstance;   
+        return lastInstance;
     }
 
     static set lastInstance(instance: WebSocketMock) {
@@ -76,7 +80,6 @@ export default class WebSocketMock implements WebSocket {
         return "blob";
     }
 
-
     get bufferedAmount(): number {
         return 42;
     }
@@ -89,8 +92,6 @@ export default class WebSocketMock implements WebSocket {
         return "";
     }
 
-
-    
     url: string;
     [onmessage]: MessageHandler | null = null;
     [onerror]: ErrorHandler | null = null;
@@ -100,7 +101,7 @@ export default class WebSocketMock implements WebSocket {
         this[onmessage] = h;
     }
     get onmessage(): MessageHandler {
-        return this[onmessage] || noop;   
+        return this[onmessage] || noop;
     }
 
     set onclose(h: CloseHandler) {
@@ -127,7 +128,7 @@ export default class WebSocketMock implements WebSocket {
         return () => {
             this.iReadyState = WebSocketMock.OPEN;
             return (this[onopen] || noop)();
-        }
+        };
     }
 
     get readyState(): ReadyStates {
@@ -148,7 +149,7 @@ export default class WebSocketMock implements WebSocket {
         this.iReadyState = WebSocketMock.CLOSED;
         this.mock.emitter.emit("close", null);
         this.iReadyState = WebSocketMock.CLOSING;
-        setTimeout(() => this.iReadyState = WebSocketMock.CLOSED, 10);
+        setTimeout(() => (this.iReadyState = WebSocketMock.CLOSED), 10);
     }
 
     send(data: string | ArrayBuffer | ArrayBufferView | Blob) {

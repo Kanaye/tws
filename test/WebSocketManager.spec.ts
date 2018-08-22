@@ -4,12 +4,15 @@ let ws: WebSocketManager;
 describe("WebSocketManager", () => {
     jest.setTimeout(10e3);
     beforeEach(() => {
-        ws = new WebSocketManager("localhost", { WebSocket: WebSocketMock, reconnect: { delay: 0, auto: true, retries: 3 } });
+        ws = new WebSocketManager("localhost", {
+            WebSocket: WebSocketMock,
+            reconnect: { delay: 0, auto: true, retries: 3 }
+        });
     });
 
     afterEach(() => {
         ws.close();
-    })
+    });
 
     it("should use the specified WebSocket implentation", async () => {
         expect(ws.options.WebSocket).toBe(WebSocketMock);
@@ -23,7 +26,10 @@ describe("WebSocketManager", () => {
     it("should resolve after the socket connected", async () => {
         const success = jest.fn();
         const error = jest.fn();
-        const p = ws.connect().then(success).catch(error);
+        const p = ws
+            .connect()
+            .then(success)
+            .catch(error);
         const wsm = WebSocketMock.lastInstance;
         expect(success).not.toHaveBeenCalled();
         expect(error).not.toHaveBeenCalled();
@@ -38,7 +44,10 @@ describe("WebSocketManager", () => {
     it("should only reject after options.reconnect.retries is reached", async () => {
         const success = jest.fn();
         const error = jest.fn();
-        const r = ws.connect().then(success).catch(error);
+        const r = ws
+            .connect()
+            .then(success)
+            .catch(error);
         let wsm: WebSocketMock | null = null;
         for (let i = 0; i < ws.options.reconnect.retries; i++) {
             if (!wsm) {
@@ -73,7 +82,10 @@ describe("WebSocketManager", () => {
 
     it("should emit connection errors to the handler", async () => {
         const onerror = jest.fn();
-        ws = new WebSocketManager("localhost", { WebSocket: WebSocketMock, reconnect: { delay: 0, retries: 1, auto: true } });
+        ws = new WebSocketManager("localhost", {
+            WebSocket: WebSocketMock,
+            reconnect: { delay: 0, retries: 1, auto: true }
+        });
         const r = WebSocketMock.nextInstance;
         ws.on("error", onerror);
         const oncatch = jest.fn();

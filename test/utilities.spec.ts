@@ -13,9 +13,9 @@ describe("utilites - sleep", () => {
 
 describe("describe - awaitEvent", () => {
     interface ITestEvents {
-        "test": number;
-        "foo": {
-            test: number[]
+        test: number;
+        foo: {
+            test: number[];
         };
     }
 
@@ -29,25 +29,27 @@ describe("describe - awaitEvent", () => {
     });
 
     it("should reject if the timeout is reached", async () => {
-        const emitter =  new TypedEventEmitter<ITestEvents>();
+        const emitter = new TypedEventEmitter<ITestEvents>();
         const listener = jest.fn();
         const onerror = jest.fn();
-        await awaitEvent(emitter, "test", 10).then(listener).catch(onerror);
+        await awaitEvent(emitter, "test", 10)
+            .then(listener)
+            .catch(onerror);
         expect(listener).not.toHaveBeenCalled();
         expect(onerror).toHaveBeenCalled();
     });
 
     it("should resolve if the needle matches", async () => {
-        const emitter =  new TypedEventEmitter<ITestEvents>();
+        const emitter = new TypedEventEmitter<ITestEvents>();
         const listener = jest.fn();
         const r = awaitEvent(emitter, "foo", undefined, { test: [42] }).then(listener);
-        emitter.emit("foo", { test: [42]});
+        emitter.emit("foo", { test: [42] });
         await r;
         expect(listener).toHaveBeenCalled();
     });
 
     it("should not resolve if the needle doesn't matches", async () => {
-        const emitter =  new TypedEventEmitter<ITestEvents>();
+        const emitter = new TypedEventEmitter<ITestEvents>();
         const listener = jest.fn();
         awaitEvent(emitter, "foo", undefined, { test: [42] }).then(listener);
         emitter.emit("foo", { test: [72] });
@@ -78,7 +80,7 @@ describe("utilites - find", () => {
     });
 
     it("should throw if the character isn't found", () => {
-        const str ="asdf";
+        const str = "asdf";
         expect(() => {
             find("q", str, 0);
         }).toThrow();

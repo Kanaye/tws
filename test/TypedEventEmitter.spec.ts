@@ -1,8 +1,8 @@
 import TypedEventEmitter from "../src/TypedEventEmitter";
 
 interface ITest {
-    "test": number,
-    "foo": string[]
+    test: number;
+    foo: string[];
 }
 // tslint:disable:no-empty
 const noop = () => {};
@@ -14,10 +14,12 @@ describe("TypedEventEmitter", () => {
         expect(E["_listeners"]).toEqual({});
         E.on("test", noop);
         expect(E["_listeners"]).toEqual({
-            test: [{
-                listener: noop,
-                once: false
-            }]
+            test: [
+                {
+                    listener: noop,
+                    once: false
+                }
+            ]
         });
     });
 
@@ -26,10 +28,12 @@ describe("TypedEventEmitter", () => {
         // tslint:disable:no-string-literal
         E.on("test", noop);
         expect(E["_listeners"]).toEqual({
-            test: [{
-                listener: noop,
-                once: false
-            }]
+            test: [
+                {
+                    listener: noop,
+                    once: false
+                }
+            ]
         });
         E.off("test", noop);
         expect(E["_listeners"]).toEqual({
@@ -56,10 +60,12 @@ describe("TypedEventEmitter", () => {
         const listener = jest.fn();
         E.once("test", listener);
         expect(E["_listeners"]).toEqual({
-            test: [{
-                listener,
-                once: true
-            }]
+            test: [
+                {
+                    listener,
+                    once: true
+                }
+            ]
         });
         E.emit("test", 42);
         expect(listener.mock.calls[0][0]).toBe(42);

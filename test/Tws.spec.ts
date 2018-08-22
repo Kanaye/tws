@@ -4,10 +4,12 @@ import WSM from "./WebSocketMock";
 
 function emulateLogin(ws: WSM): Promise<void> {
     let i = 0;
-    return new Promise((r) => {
+    return new Promise(r => {
         ws.mock.emitter.on("send", () => {
             if (i === 0) {
-               ws.mock.send(`:tmi.twitch.tv CAP * ACK :twitch.tv/tags twitch.tv/membership twitch.tv/commands`); 
+                ws.mock.send(
+                    `:tmi.twitch.tv CAP * ACK :twitch.tv/tags twitch.tv/membership twitch.tv/commands`
+                );
             }
             if (i === 1) {
                 ws.mock.send(`:tmi.twitch.tv 001 user: Welcome!`);
@@ -22,7 +24,7 @@ function emulateLogin(ws: WSM): Promise<void> {
 }
 
 describe("Tws", () => {
-    jest.setTimeout(10e3)
+    jest.setTimeout(10e3);
     let tws: Tws;
     beforeEach(() => {
         tws = new Tws({
@@ -45,7 +47,7 @@ describe("Tws", () => {
         ];
         WSM.nextInstance.then(ws => {
             let count = 0;
-            ws.mock.emitter.on('send', (m) => {
+            ws.mock.emitter.on("send", m => {
                 expect(m).toMatch(messages[count++]);
             });
             emulateLogin(ws);
@@ -59,10 +61,13 @@ describe("Tws", () => {
             /PASS test/,
             /NICK test/
         ];
-        tws = new Tws({ auth: { password: "test", username: "test" }, connection: { WebSocket: WSM }});
+        tws = new Tws({
+            auth: { password: "test", username: "test" },
+            connection: { WebSocket: WSM }
+        });
         WSM.nextInstance.then(ws => {
             let count = 0;
-            ws.mock.emitter.on('send', (m) => {
+            ws.mock.emitter.on("send", m => {
                 expect(m).toMatch(messages[count++]);
             });
             return emulateLogin(ws);
@@ -74,18 +79,18 @@ describe("Tws", () => {
         WSM.nextInstance.then(i => emulateLogin(i));
         await tws.connect();
         const ws = WSM.lastInstance;
-        tws.on("raw-receive", (e) => {
+        tws.on("raw-receive", e => {
             expect(e.message).toBe(":some.host TEST test");
         });
         ws.mock.send(":some.host TEST test");
     });
 
     it("emits parsed messages at receive", async () => {
-        WSM.nextInstance.then(i => emulateLogin(i) );
+        WSM.nextInstance.then(i => emulateLogin(i));
         await tws.connect();
         const ws = WSM.lastInstance;
         const INPUT = ":some.host TEST test";
-        tws.on("receive", (m) => {
+        tws.on("receive", m => {
             expect(m).toEqual({
                 command: "TEST",
                 params: ["test"],
@@ -94,17 +99,17 @@ describe("Tws", () => {
                     server: "some.host"
                 },
                 raw: INPUT
-            })
+            });
         });
         ws.mock.send(INPUT);
     });
 
     it("emits messages on the .twitch emitter", async () => {
-       WSM.nextInstance.then(i => emulateLogin(i));
-       await tws.connect();
-       const input = ":some.host PONG test";
-       tws.twitch.on("pong", (m) => {
-           expect(m).toEqual({
+        WSM.nextInstance.then(i => emulateLogin(i));
+        await tws.connect();
+        const input = ":some.host PONG test";
+        tws.twitch.on("pong", m => {
+            expect(m).toEqual({
                 command: "PONG",
                 params: ["test"],
                 prefix: {
@@ -112,9 +117,9 @@ describe("Tws", () => {
                     server: "some.host"
                 },
                 raw: input
-           });
-       });
-       WSM.lastInstance.mock.send(input);
+            });
+        });
+        WSM.lastInstance.mock.send(input);
     });
 
     it("sends pings in the specified interval", async () => {
@@ -122,7 +127,7 @@ describe("Tws", () => {
         WSM.nextInstance.then(i => emulateLogin(i));
         await tws.connect();
         await new Promise(r => {
-            WSM.lastInstance.mock.emitter.on("send", (m) => {
+            WSM.lastInstance.mock.emitter.on("send", m => {
                 expect(m).toMatch(/PING \d+/);
                 r();
             });
@@ -130,30 +135,29 @@ describe("Tws", () => {
     });
 
     it("emits pong events with the delay as a param", async () => {
-        // tslint:disable:jsdoc-format
-        /** 
-         * @todo
         tws = new Tws({ pingInterval: 100, connection: { WebSocket: WSM } });
         WSM.nextInstance.then(i => emulateLogin(i));
         await tws.connect();
-        const delay = awaitEvent(tws, "pong", 3000); 
+        const delay = awaitEvent(tws, "pong", 3000);
         await new Promise(r => {
-            WSM.lastInstance.mock.emitter.on("send", (msg) => {
+            WSM.lastInstance.mock.emitter.on("send", msg => {
                 if (msg.indexOf("PING") > -1) {
+                    WSM.lastInstance.mock.send(msg.replace("PING", "PONG tmi.twitch.tv"));
                     r();
-                    WSM.lastInstance.mock.send(msg.replace("PING", "PONG"));
                 }
-            })
+            });
         });
         expect(await delay).toBeGreaterThanOrEqual(0);
-        */
     });
 
-    it("auto answers ping messages with pong", () => {
-        /**
-         * @todo
-         */
-
+    it("auto answers ping messages with pong", async () => {
+        WSM.nextInstance.then(i => emulateLogin(i));
+        await tws.connect();
+        const ws = WSM.lastInstance;
+        const listener = jest.fn();
+        ws.mock.emitter.on("send", listener);
+        ws.mock.send("PING 42");
+        await new Promise(r => ws.mock.emitter.once("send", () => r()));
+        expect(listener).toHaveBeenCalledWith("PONG 42");
     });
 });
-

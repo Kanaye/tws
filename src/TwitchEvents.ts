@@ -33,7 +33,7 @@ export interface IUserlistEnd extends IParsedIRCMessage {
 
 export interface ICap extends IParsedIRCMessage {
     command: "CAP";
-    params: ["*", "ACK", string];
+    params: ["*", "ACK" | "NAK", string];
     prefix: IServerPrefix;
 }
 

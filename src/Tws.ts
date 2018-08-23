@@ -1,3 +1,4 @@
+import { rejects } from "assert";
 import { IIRCMessage, IParsedIRCMessage, parseMessages, serializeMessage } from "./irc/index";
 import { ITwitchEventMap, TwitchCommands } from "./TwitchEvents";
 import SimpleEventEmitter from "./TypedEventEmitter";
@@ -68,6 +69,47 @@ export interface ITwsEventmap {
     reconnect: null;
     error: Error;
 }
+
+async function requestCapabilities(
+    capabilities: string[],
+    tws: Tws,
+    timeout: number
+): Promise<void> {
+    tws.send({
+        command: "CAP",
+        params: ["REQ", capabilities.join(" ")]
+    });
+
+    const acknowleged: string[] = [];
+    while (acknowleged.length < capabilities.length) {
+        const msg = await awaitEvent(tws.twitch, "cap", timeout).catch(() => {
+            const missing = capabilities.filter(c => acknowleged.indexOf(c) === -1);
+            throw new Error(`Timed out requesting capabilities "${missing.join(", ")}".`);
+        });
+
+        const [_, ack, caps] = msg.params;
+        if (ack === "NAK") {
+            throw new Error(`Twitch denied capabilities "${caps.split(" ").join(", ")}".`);
+        }
+
+        caps.split(" ").forEach(c => acknowleged.push(c));
+    }
+}
+
+interface IVoidResolve {
+    resolve: () => any;
+    reject: (e: Error) => any;
+    promise: Promise<any>;
+}
+
+function createResolveable(): IVoidResolve {
+    const result: Partial<IVoidResolve> = {};
+    result.promise = new Promise((resolve, reject) => {
+        result.reject = (e: Error) => reject(e);
+        result.resolve = () => resolve();
+    });
+    return result as IVoidResolve;
+}
 /**
  * Tws handles websocket connection, reconnects,
  * serialization and sending of messages,
@@ -81,13 +123,30 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     get connected(): boolean {
         return this.ws.connected && this._loggedIn;
     }
+
     /**
      * The event emitter on which all received irc messages are dispatched on.
      */
     public twitch: SimpleEventEmitter<ITwitchEventMap> = new SimpleEventEmitter();
+    /**
+     * twitch capabilities to request when connecting
+     * you can change them if you need to ...
+     * but note that you *must* do it *before* connecting
+     * changing it while beeing connected will *not* change
+     * current capibilities!
+     *
+     * defaults to all (currently) know capabilities supported by twitch.
+     * @see https://dev.twitch.tv/docs/irc/guide/#twitch-irc-capabilities
+     */
+    public capabilities: string[] = [
+        "twitch.tv/tags",
+        "twitch.tv/membership",
+        "twitch.tv/commands"
+    ];
 
     // tslint:disable:variable-name
     private _loggedIn: boolean = false;
+    private _connectPromise: IVoidResolve | null = null;
     private ws: WebSocketManager;
     private options: ICompleteTwsOptions;
     private pingInterval: number | NodeJS.Timer | undefined;
@@ -104,13 +163,16 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
 
         ws.on("open", async () => {
             const { auth, eventTimeout } = this.options;
-            // request all Twitch IRC Capabilities
-            // see https://dev.twitch.tv/docs/irc/#twitch-specific-irc-capabilities
-            this.sendRaw("CAP REQ :twitch.tv/tags twitch.tv/membership twitch.tv/commands");
+
             try {
-                await awaitEvent(this.twitch, "cap", eventTimeout);
+                await requestCapabilities(this.capabilities, this, eventTimeout);
             } catch (e) {
-                this.emit("error", e);
+                if (this._connectPromise) {
+                    this._connectPromise.reject(e);
+                    this._connectPromise = null;
+                } else {
+                    this.emit("error", e);
+                }
                 this.ws.close();
                 return;
             }
@@ -127,6 +189,9 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
             }
             this._loggedIn = true;
             this.emit("open", null);
+            if (this._connectPromise) {
+                this._connectPromise.resolve();
+            }
         });
 
         ws.on("reconnect", () => {
@@ -154,7 +219,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
         });
 
         this.twitch.on("reconnect", () => {
-            this.ws.reconnect();
+            this.ws.reconnect().catch(e => this.emit("error", e));
         });
 
         this.twitch.on("ping", m => {
@@ -186,7 +251,8 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
             throw new Error("Already connected");
         }
         await this.ws.connect();
-        await awaitEvent(this, "open");
+        this._connectPromise = createResolveable();
+        await this._connectPromise.promise;
         const { pingInterval } = this.options;
         this.pingInterval = setInterval(this.ping, pingInterval);
         return this;

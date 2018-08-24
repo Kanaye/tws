@@ -1,6 +1,7 @@
 # TWS
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/jancba/tws.svg)](https://greenkeeper.io/)
+[![Build Status](https://travis-ci.org/jancba/tws.svg?branch=master)](https://travis-ci.org/jancba/tws)
 
 Note: For now this library is released under a "not stable" version, this is mostly because there are still missing tests and missing documentation (other than typings trough typescript and comments).
 

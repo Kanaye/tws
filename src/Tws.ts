@@ -1,4 +1,3 @@
-import { rejects } from "assert";
 import { IIRCMessage, IParsedIRCMessage, parseMessages, serializeMessage } from "./irc/index";
 import { ITwitchEventMap, TwitchCommands } from "./TwitchEvents";
 import SimpleEventEmitter from "./TypedEventEmitter";
@@ -70,6 +69,10 @@ export interface ITwsEventmap {
     error: Error;
 }
 
+/**
+ * Requests given capabilities.
+ * @internal
+ */
 async function requestCapabilities(
     capabilities: string[],
     tws: Tws,
@@ -88,12 +91,41 @@ async function requestCapabilities(
         });
 
         const [_, ack, caps] = msg.params;
+
         if (ack === "NAK") {
             throw new Error(`Twitch denied capabilities "${caps.split(" ").join(", ")}".`);
         }
 
         caps.split(" ").forEach(c => acknowleged.push(c));
     }
+}
+/**
+ * Performs the login sequence on the websocket.
+ * @internal
+ */
+async function performLogin(
+  auth: IAuth,
+  tws: Tws,
+  timeout: number
+): Promise<void> {
+  tws.send({
+    command: "PASS",
+    params: [auth.password]
+  });
+
+  tws.send({
+    command: "NICK",
+    params: [auth.username]
+  });
+
+  const res = await new Promise((r, e) => {
+    awaitEvent(tws.twitch, "001", timeout).then(m => r(m)).catch(e);
+    awaitEvent(tws.twitch, "notice").then(m => r(m)); 
+  }) as ITwitchEventMap["001"] | ITwitchEventMap["notice"];
+
+  if (res.command === "NOTICE") {
+    throw new Error(`Could not login! Error: ${res.params[1]}`);
+  }
 }
 
 interface IVoidResolve {
@@ -102,13 +134,24 @@ interface IVoidResolve {
     promise: Promise<any>;
 }
 
-function createResolveable(): IVoidResolve {
+function connectionResolveable(tws: Tws): Promise<void> {
+  // tslint:disable:no-string-literal
+  if (!tws["_connectPromise"]) {
     const result: Partial<IVoidResolve> = {};
+    const remove = () => {
+      if (tws["_connectPromise"] === result) {
+        tws["_connectPromise"] = null;
+      }
+    };
     result.promise = new Promise((resolve, reject) => {
-        result.reject = (e: Error) => reject(e);
-        result.resolve = () => resolve();
+      result.reject = (e: Error) => { remove(); reject(e) };
+      result.resolve = () => { remove(); resolve() };
     });
-    return result as IVoidResolve;
+    tws["_connectPromise"] = result as IVoidResolve;
+  }
+  // tslint:disable:no-string-literal
+  // @ts-ignore typescript is currently to dumb to realize this case will never exist
+  return tws["_connectPromise"].promise;
 }
 /**
  * Tws handles websocket connection, reconnects,
@@ -163,9 +206,16 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
 
         ws.on("open", async () => {
             const { auth, eventTimeout } = this.options;
-
             try {
-                await requestCapabilities(this.capabilities, this, eventTimeout);
+              // request capabilities for this instance
+              await requestCapabilities(this.capabilities, this, eventTimeout);
+              // send login
+              await performLogin(auth, this, eventTimeout);
+              this._loggedIn = true;
+              this.emit("open", null);
+              if (this._connectPromise) {
+                  this._connectPromise.resolve();
+              }
             } catch (e) {
                 if (this._connectPromise) {
                     this._connectPromise.reject(e);
@@ -175,22 +225,6 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
                 }
                 this.ws.close();
                 return;
-            }
-            // perform login
-            this.sendRaw(`PASS ${auth.password}`);
-            this.sendRaw(`NICK ${auth.username}`);
-            // await first line of "motd"
-            try {
-                await awaitEvent(this.twitch, "001", eventTimeout);
-            } catch (e) {
-                this.ws.close();
-                this.emit("error", e);
-                return;
-            }
-            this._loggedIn = true;
-            this.emit("open", null);
-            if (this._connectPromise) {
-                this._connectPromise.resolve();
             }
         });
 
@@ -251,8 +285,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
             throw new Error("Already connected");
         }
         await this.ws.connect();
-        this._connectPromise = createResolveable();
-        await this._connectPromise.promise;
+        await connectionResolveable(this); 
         const { pingInterval } = this.options;
         this.pingInterval = setInterval(this.ping, pingInterval);
         return this;

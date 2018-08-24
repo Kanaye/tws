@@ -1,4 +1,7 @@
 # TWS
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/jancba/tws.svg)](https://greenkeeper.io/)
+
 Note: For now this library is released under a "not stable" version, this is mostly because there are still missing tests and missing documentation (other than typings trough typescript and comments).
 
 `TWS` is a *low lever* library for connecting to twitchs  WebSocket IRC gateway.

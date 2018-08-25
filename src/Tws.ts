@@ -8,19 +8,40 @@ import WebSocketManager, { IOptions as WSManagerOptions } from "./WebSocketManag
  * Login options you need to provide if you want to send chat messages.
  *
  * @public
- * @property username - The username to login with in lowercase.
- * @property password - Am oauth token for twitch with scope "chat_login". You can get one at http://www.twitchapps.com/tmi/
  */
 export interface IAuth {
+   /**
+    * The username to login with in lowercase.
+    */
     username: string;
+    /**
+     * Am oauth token for twitch with scope "chat_login". You can get one at http://www.twitchapps.com/tmi/
+     */
     password: string;
 }
 
 interface ICompleteTwsOptions {
+  /**
+   * The auth credentials to use for login.
+   * Defaults to an anonymous login.
+   */
     auth: IAuth;
+    /**
+     * The url including protocol to connect to.
+     * Defaults to wss://irc-ws.chat.twitch.tv/ 
+     */
     url: string;
+    /**
+     * The interval in which we will try to ping twich
+     * in milliseconds.
+     * Defaults to 5000.
+     */
     pingInterval: number;
     connection: WSManagerOptions;
+    /**
+     * The time to wait before throwing when 
+     * waiting for  
+     */
     eventTimeout: number;
 }
 
@@ -48,24 +69,68 @@ const defaultSettings: ICompleteTwsOptions = {
     pingInterval: 15e3,
     url: "wss://irc-ws.chat.twitch.tv/"
 };
-
+/**
+ * A raw message with the serialized message and the recerive/send date.
+ */
 export interface IRawMessageEvent {
+    /**
+     * The raw, serialized IRC Message.
+     */
     message: string;
+    /**
+     * The datetime the message has been received or send.
+     */
     date: Date;
 }
 
 export interface ITwsEventmap {
+    /**
+     * Emitted when a serialized message is sent.
+     */
     "raw-send": IRawMessageEvent;
+    /**
+     * Emitted when a message got received.
+     */
     "raw-receive": IRawMessageEvent;
+    /**
+     * Emitted when a message got received and parsed. 
+     */
     receive: IParsedIRCMessage;
+    /**
+     * Emitted when ever a received IRC Message could not be parsed.
+     */
     "parsing-error": {
+        /**
+         * The error why the message couldn't be parsed.
+         */
         error: Error;
+        /**
+         * The input that couldn't be parsed.
+         */
         input: string;
     };
+    /**
+     * Emitted when a pong is received from twitch.
+     * The value is the delay/lag in milliseconds.
+     */
     pong: number;
+    /**
+     * Emitted when a new connection to twitch got opened.
+     */
     open: null;
+    /**
+     * Emitted when a connection got closed.
+     */
     close: null;
+    /**
+     * Emitted when a new connection will be opened.
+     * Either because the connection just closed or
+     * because twitch send a "reconnect" command.
+     */
     reconnect: null;
+    /**
+     * Emitted when an error occured in processing.
+     */
     error: Error;
 }
 
@@ -128,12 +193,17 @@ async function performLogin(
   }
 }
 
+/**
+ * @internal
+ */
 interface IVoidResolve {
     resolve: () => any;
     reject: (e: Error) => any;
     promise: Promise<any>;
 }
-
+/**
+ * @internal
+ */
 function connectionResolveable(tws: Tws): Promise<void> {
   // tslint:disable:no-string-literal
   if (!tws["_connectPromise"]) {

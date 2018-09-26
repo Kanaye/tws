@@ -22,7 +22,7 @@ type ErrorHandler = (ev?: Event) => any;
 
 interface IWSEvents {
     send: string;
-    close: void;
+    close: null;
 }
 
 function createMockObject(mock: WebSocketMock) {
@@ -30,7 +30,7 @@ function createMockObject(mock: WebSocketMock) {
         const self = mock;
         return {
             emitter: new TypedEventEmitter<IWSEvents>(),
-            messages: [],
+            messages: [] as string[],
             send(msg: string) {
                 setTimeout(() => {
                     const m = new MessageEvent("send", { data: msg });
@@ -153,7 +153,7 @@ export default class WebSocketMock implements WebSocket {
     }
 
     send(data: string | ArrayBuffer | ArrayBufferView | Blob) {
-        this.mock.messages.push(data.toString());
+        this.mock.messages.push(String(data));
         this.mock.emitter.emit("send", data.toString());
     }
 

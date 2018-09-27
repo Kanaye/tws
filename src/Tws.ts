@@ -69,6 +69,7 @@ const defaultSettings: ICompleteTwsOptions = {
     pingInterval: 15e3,
     url: "wss://irc-ws.chat.twitch.tv/"
 };
+
 /**
  * A raw message with the serialized message and the recerive/send date.
  */
@@ -164,6 +165,8 @@ async function requestCapabilities(
         caps.split(" ").forEach(c => acknowleged.push(c));
     }
 }
+
+
 /**
  * Performs the login sequence on the websocket.
  * @internal
@@ -201,6 +204,7 @@ interface IVoidResolve {
     reject: (e: Error) => any;
     promise: Promise<any>;
 }
+
 /**
  * @internal
  */
@@ -223,6 +227,7 @@ function connectionResolveable(tws: Tws): Promise<void> {
   // @ts-ignore typescript is currently to dumb to realize this case will never exist
   return tws["_connectPromise"].promise;
 }
+
 /**
  * Tws handles websocket connection, reconnects,
  * serialization and sending of messages,

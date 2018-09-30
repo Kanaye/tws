@@ -1,9 +1,11 @@
 import { IIRCMessage, IParsedIRCMessage, parseMessages, serializeMessage } from "./irc/index";
-import { ITwitchEventMap, TwitchCommands } from "./TwitchEvents";
+import { ITwsEventmap } from "./ITwsEventMap";
+import { IReconnect, ITwitchEventMap, TwitchCommands } from "./TwitchEvents";
 import SimpleEventEmitter from "./TypedEventEmitter";
 import { awaitEvent } from "./utilities";
 import WebSocketManager, { IOptions as WSManagerOptions } from "./WebSocketManager";
 
+export * from "./ITwsEventMap";
 /**
  * Login options you need to provide if you want to send chat messages.
  *
@@ -70,70 +72,6 @@ const defaultSettings: ICompleteTwsOptions = {
     url: "wss://irc-ws.chat.twitch.tv/"
 };
 
-/**
- * A raw message with the serialized message and the recerive/send date.
- */
-export interface IRawMessageEvent {
-    /**
-     * The raw, serialized IRC Message.
-     */
-    message: string;
-    /**
-     * The datetime the message has been received or send.
-     */
-    date: Date;
-}
-
-export interface ITwsEventmap {
-    /**
-     * Emitted when a serialized message is sent.
-     */
-    "raw-send": IRawMessageEvent;
-    /**
-     * Emitted when a message got received.
-     */
-    "raw-receive": IRawMessageEvent;
-    /**
-     * Emitted when a message got received and parsed. 
-     */
-    receive: IParsedIRCMessage;
-    /**
-     * Emitted when ever a received IRC Message could not be parsed.
-     */
-    "parsing-error": {
-        /**
-         * The error why the message couldn't be parsed.
-         */
-        error: Error;
-        /**
-         * The input that couldn't be parsed.
-         */
-        input: string;
-    };
-    /**
-     * Emitted when a pong is received from twitch.
-     * The value is the delay/lag in milliseconds.
-     */
-    pong: number;
-    /**
-     * Emitted when a new connection to twitch got opened.
-     */
-    open: null;
-    /**
-     * Emitted when a connection got closed.
-     */
-    close: null;
-    /**
-     * Emitted when a new connection will be opened.
-     * Either because the connection just closed or
-     * because twitch send a "reconnect" command.
-     */
-    reconnect: null;
-    /**
-     * Emitted when an error occured in processing.
-     */
-    error: Error;
-}
 
 /**
  * Requests given capabilities.
@@ -199,34 +137,42 @@ async function performLogin(
 /**
  * @internal
  */
-interface IVoidResolve {
+interface IVoidResolveable {
+    promise: Promise<any>;
+    finished: boolean;
     resolve: () => any;
     reject: (e: Error) => any;
-    promise: Promise<any>;
 }
 
 /**
  * @internal
  */
-function connectionResolveable(tws: Tws): Promise<void> {
-  // tslint:disable:no-string-literal
-  if (!tws["_connectPromise"]) {
-    const result: Partial<IVoidResolve> = {};
-    const remove = () => {
-      if (tws["_connectPromise"] === result) {
-        tws["_connectPromise"] = null;
-      }
-    };
-    result.promise = new Promise((resolve, reject) => {
-      result.reject = (e: Error) => { remove(); reject(e) };
-      result.resolve = () => { remove(); resolve() };
-    });
-    tws["_connectPromise"] = result as IVoidResolve;
-  }
-  // tslint:disable:no-string-literal
-  // @ts-ignore typescript is currently to dumb to realize this case will never exist
-  return tws["_connectPromise"].promise;
+function resolveable(): IVoidResolveable {
+  let resolve: () => any; 
+  let reject: (e: Error) => any;
+  let finished = false;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return {
+    get finished(): boolean {
+        return finished;
+    },
+    promise,
+    resolve() {
+        finished = true;
+        resolve();
+    },
+    reject(e: Error) {
+        finished = true;
+        reject(e);
+    }
+  };
 }
+
+const LOGGED_IN = Symbol();
+const CONNECTION_PROMISE = Symbol();
 
 /**
  * Tws handles websocket connection, reconnects,
@@ -239,7 +185,7 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
      * and the the user is logged in.
      */
     get connected(): boolean {
-        return this.ws.connected && this._loggedIn;
+        return this.ws.connected && this[LOGGED_IN];
     }
 
     /**
@@ -263,8 +209,8 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
     ];
 
     // tslint:disable:variable-name
-    private _loggedIn: boolean = false;
-    private _connectPromise: IVoidResolve | null = null;
+    private [LOGGED_IN]: boolean = false;
+    private [CONNECTION_PROMISE]: IVoidResolveable = resolveable();
     private ws: WebSocketManager;
     private options: ICompleteTwsOptions;
     private pingInterval: number | NodeJS.Timer | undefined;
@@ -286,25 +232,19 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
               await requestCapabilities(this.capabilities, this, eventTimeout);
               // send login
               await performLogin(auth, this, eventTimeout);
-              this._loggedIn = true;
+              this[LOGGED_IN] = true;
               this.emit("open", null);
-              if (this._connectPromise) {
-                  this._connectPromise.resolve();
-              }
+                  this[CONNECTION_PROMISE].resolve();
             } catch (e) {
-                if (this._connectPromise) {
-                    this._connectPromise.reject(e);
-                    this._connectPromise = null;
-                } else {
+                    this[CONNECTION_PROMISE].reject(e);
                     this.emit("error", e);
-                }
                 this.ws.close();
                 return;
             }
         });
 
         ws.on("reconnect", () => {
-            this._loggedIn = false;
+            this[LOGGED_IN] = false;
             this.emit("reconnect", null);
         });
 
@@ -359,8 +299,12 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
         if (this.ws.connected) {
             throw new Error("Already connected");
         }
+
+        if (this[CONNECTION_PROMISE].finished) {
+            this[CONNECTION_PROMISE] = resolveable();
+        }
         await this.ws.connect();
-        await connectionResolveable(this); 
+        await this[CONNECTION_PROMISE].promise;
         const { pingInterval } = this.options;
         this.pingInterval = setInterval(this.ping, pingInterval);
         return this;

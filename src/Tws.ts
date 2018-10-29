@@ -12,9 +12,9 @@ export * from "./ITwsEventMap";
  * @public
  */
 export interface IAuth {
-   /**
-    * The username to login with in lowercase.
-    */
+    /**
+     * The username to login with in lowercase.
+     */
     username: string;
     /**
      * Am oauth token for twitch with scope "chat_login". You can get one at http://www.twitchapps.com/tmi/
@@ -23,14 +23,14 @@ export interface IAuth {
 }
 
 interface ICompleteTwsOptions {
-  /**
-   * The auth credentials to use for login.
-   * Defaults to an anonymous login.
-   */
+    /**
+     * The auth credentials to use for login.
+     * Defaults to an anonymous login.
+     */
     auth: IAuth;
     /**
      * The url including protocol to connect to.
-     * Defaults to wss://irc-ws.chat.twitch.tv/ 
+     * Defaults to wss://irc-ws.chat.twitch.tv/
      */
     url: string;
     /**
@@ -41,8 +41,8 @@ interface ICompleteTwsOptions {
     pingInterval: number;
     connection: WSManagerOptions;
     /**
-     * The time to wait before throwing when 
-     * waiting for  
+     * The time to wait before throwing when
+     * waiting for
      */
     eventTimeout: number;
 }
@@ -71,7 +71,6 @@ const defaultSettings: ICompleteTwsOptions = {
     pingInterval: 15e3,
     url: "wss://irc-ws.chat.twitch.tv/"
 };
-
 
 /**
  * Requests given capabilities.
@@ -104,34 +103,31 @@ async function requestCapabilities(
     }
 }
 
-
 /**
  * Performs the login sequence on the websocket.
  * @internal
  */
-async function performLogin(
-  auth: IAuth,
-  tws: Tws,
-  timeout: number
-): Promise<void> {
-  tws.send({
-    command: "PASS",
-    params: [auth.password]
-  });
+async function performLogin(auth: IAuth, tws: Tws, timeout: number): Promise<void> {
+    tws.send({
+        command: "PASS",
+        params: [auth.password]
+    });
 
-  tws.send({
-    command: "NICK",
-    params: [auth.username]
-  });
+    tws.send({
+        command: "NICK",
+        params: [auth.username]
+    });
 
-  const res = await new Promise((r, e) => {
-    awaitEvent(tws.twitch, "001", timeout).then(m => r(m)).catch(e);
-    awaitEvent(tws.twitch, "notice").then(m => r(m)); 
-  }) as ITwitchEventMap["001"] | ITwitchEventMap["notice"];
+    const res = (await new Promise((r, e) => {
+        awaitEvent(tws.twitch, "001", timeout)
+            .then(m => r(m))
+            .catch(e);
+        awaitEvent(tws.twitch, "notice").then(m => r(m));
+    })) as ITwitchEventMap["001"] | ITwitchEventMap["notice"];
 
-  if (res.command === "NOTICE") {
-    throw new Error(`Could not login! Error: ${res.params[1]}`);
-  }
+    if (res.command === "NOTICE") {
+        throw new Error(`Could not login! Error: ${res.params[1]}`);
+    }
 }
 
 /**
@@ -148,27 +144,27 @@ interface IVoidResolveable {
  * @internal
  */
 function resolveable(): IVoidResolveable {
-  let resolve: () => any; 
-  let reject: (e: Error) => any;
-  let finished = false;
-  const promise = new Promise((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return {
-    get finished(): boolean {
-        return finished;
-    },
-    promise,
-    resolve() {
-        finished = true;
-        resolve();
-    },
-    reject(e: Error) {
-        finished = true;
-        reject(e);
-    }
-  };
+    let resolve: () => any;
+    let reject: (e: Error) => any;
+    let finished = false;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return {
+        get finished(): boolean {
+            return finished;
+        },
+        promise,
+        resolve() {
+            finished = true;
+            resolve();
+        },
+        reject(e: Error) {
+            finished = true;
+            reject(e);
+        }
+    };
 }
 
 const LOGGED_IN = Symbol();
@@ -228,16 +224,16 @@ export default class Tws extends SimpleEventEmitter<ITwsEventmap> {
         ws.on("open", async () => {
             const { auth, eventTimeout } = this.options;
             try {
-              // request capabilities for this instance
-              await requestCapabilities(this.capabilities, this, eventTimeout);
-              // send login
-              await performLogin(auth, this, eventTimeout);
-              this[LOGGED_IN] = true;
-              this.emit("open", null);
-                  this[CONNECTION_PROMISE].resolve();
+                // request capabilities for this instance
+                await requestCapabilities(this.capabilities, this, eventTimeout);
+                // send login
+                await performLogin(auth, this, eventTimeout);
+                this[LOGGED_IN] = true;
+                this.emit("open", null);
+                this[CONNECTION_PROMISE].resolve();
             } catch (e) {
-                    this[CONNECTION_PROMISE].reject(e);
-                    this.emit("error", e);
+                this[CONNECTION_PROMISE].reject(e);
+                this.emit("error", e);
                 this.ws.close();
                 return;
             }

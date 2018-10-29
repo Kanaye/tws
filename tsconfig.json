@@ -9,6 +9,7 @@
         "strict": true,
         "declaration": false,
         "declarationDir": "./dist/typings",
+        "esModuleInterop": true
     },
     "exclude": [
         "test/",

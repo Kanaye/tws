@@ -23,7 +23,7 @@ export interface ITwsEventmap {
      */
     "raw-receive": IRawMessageEvent;
     /**
-     * Emitted when a message got received and parsed. 
+     * Emitted when a message got received and parsed.
      */
     receive: IParsedIRCMessage;
     /**

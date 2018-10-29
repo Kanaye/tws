@@ -7,7 +7,7 @@ describe("utilites - sleep", () => {
         await sleep(100);
         const now = Date.now();
         expect(now - start).toBeGreaterThanOrEqual(70);
-        expect(now - start).toBeLessThanOrEqual(150);
+        expect(now - start).toBeLessThanOrEqual(1000);
     });
 });
 

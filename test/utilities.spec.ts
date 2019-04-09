@@ -1,6 +1,7 @@
 import TypedEventEmitter from "../src/TypedEventEmitter";
 import { awaitEvent, contains, find, sleep } from "../src/utilities";
 
+/*
 describe("utilites - sleep", () => {
     it("should resolve once the time is over", async () => {
         const start = Date.now();
@@ -10,6 +11,7 @@ describe("utilites - sleep", () => {
         expect(now - start).toBeLessThanOrEqual(1000);
     });
 });
+*/
 
 describe("describe - awaitEvent", () => {
     interface ITestEvents {

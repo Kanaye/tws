@@ -33,7 +33,7 @@
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.5.5",
-    "@babel/preset-env": "^7.1.0",
+    "@babel/preset-env": "^7.5.5",
     "@types/jest": "^24.0.5",
     "@types/node": "^11.9.0",
     "dset": "^2.0.0",

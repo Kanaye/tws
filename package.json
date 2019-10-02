@@ -38,7 +38,7 @@
     "@types/node": "^12.0.0",
     "dset": "^2.0.0",
     "fast-async": "^7.0.6",
-    "husky": "^3.0.4",
+    "husky": "^3.0.8",
     "jest": "^23.6.0",
     "npm-run-all": "^4.1.3",
     "prettier": "^1.14.3",

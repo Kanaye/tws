@@ -34,7 +34,7 @@
   "devDependencies": {
     "@babel/core": "^7.1.2",
     "@babel/preset-env": "^7.1.0",
-    "@types/jest": "^24.0.5",
+    "@types/jest": "^25.1.3",
     "@types/node": "^13.1.0",
     "dset": "^2.0.0",
     "fast-async": "^7.0.6",
